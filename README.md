@@ -1,0 +1,22 @@
+# Supra Automation Assist
+
+## ✨ Features:
+
+- Real-time epoch countdown with live updates
+- Auto-calculated expiry times using the exact formula you provided
+- Automation fee estimation using the Supra API
+- One-click copy for all values
+- Complete CLI template generator
+
+## 🚀 Technical Implementation:
+
+- Fetches live data from Supra RPC endpoints
+- Calculates expiry time using your exact formula: last_reconfiguration_time/1000000 + 7200 + 300
+- Auto-updates every 30 seconds
+- Countdown timer updates every second
+
+## 📋 Ready-to-Use Values:
+
+- `--task-expiry-time-secs` (calculated automatically)
+- `--task-automation-fee-cap` (fetched from API)
+- Complete CLI command template
