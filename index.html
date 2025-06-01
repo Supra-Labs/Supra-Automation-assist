@@ -313,7 +313,6 @@
         }
 
         .values-title::before {
-            content: '📋';
             font-size: 1.5rem;
         }
 
@@ -434,6 +433,117 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Resources Section */
+        .resources-section {
+            background: rgba(29, 42, 58, 0.25);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(53, 63, 74, 0.3);
+            border-radius: 24px;
+            padding: 2rem;
+            margin-top: 2rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .resources-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(221, 20, 56, 0.3), transparent);
+            animation: shimmer 4s ease-in-out infinite;
+        }
+
+        .resources-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .resources-title::before {
+            font-size: 1.5rem;
+        }
+
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .resource-card {
+            background: rgba(53, 63, 74, 0.3);
+            border: 1px solid rgba(106, 115, 124, 0.2);
+            border-radius: 16px;
+            padding: 1.25rem;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .resource-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(221, 20, 56, 0.05), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .resource-card:hover::before {
+            left: 100%;
+        }
+
+        .resource-card:hover {
+            border-color: rgba(221, 20, 56, 0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 15px 35px rgba(19, 23, 34, 0.3);
+        }
+
+        .resource-icon {
+            font-size: 2rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(29, 42, 58, 0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(221, 20, 56, 0.2);
+            flex-shrink: 0;
+        }
+
+        .resource-info {
+            flex: 1;
+        }
+
+        .resource-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.25rem;
+        }
+
+        .resource-desc {
+            font-size: 0.85rem;
+            color: #9EABB5;
+            font-weight: 400;
+        }
+
         .status-bar {
             position: fixed;
             bottom: 1rem;
@@ -470,6 +580,10 @@
             .values-grid {
                 grid-template-columns: 1fr;
             }
+
+            .resources-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         @media (max-width: 768px) {
@@ -495,6 +609,16 @@
                 right: 1rem;
                 transform: none;
                 padding: 1rem 1.5rem;
+            }
+
+            .resource-card {
+                padding: 1rem;
+            }
+            
+            .resource-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.5rem;
             }
         }
 
@@ -587,6 +711,45 @@
                     </div>
                     <button class="copy-btn" onclick="copyToClipboard('cliTemplate', this)">Copy</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Resources Section -->
+        <div class="resources-section">
+            <h3 class="resources-title">Automation Dev Resources</h3>
+            
+            <div class="resources-grid">
+                <a href="https://docs.supra.com/network/move/getting-started/supra-cli-with-docker" target="_blank" class="resource-card">
+                    <div class="resource-icon">🛠️</div>
+                    <div class="resource-info">
+                        <div class="resource-name">Install Supra CLI</div>
+                        <div class="resource-desc">Get the Supra Docker CLI</div>
+                    </div>
+                </a>
+
+                <a href="https://docs.supra.com/automation" target="_blank" class="resource-card">
+                    <div class="resource-icon">📚</div>
+                    <div class="resource-info">
+                        <div class="resource-name">Automation Docs</div>
+                        <div class="resource-desc">Complete Supra Automation Documentation and Guides</div>
+                    </div>
+                </a>
+
+                <a href="https://docs.supra.com/network/move/network-information" target="_blank" class="resource-card">
+                    <div class="resource-icon">🌐</div>
+                    <div class="resource-info">
+                        <div class="resource-name">Network Details</div>
+                        <div class="resource-desc">RPC endpoints & configs</div>
+                    </div>
+                </a>
+
+                <a href="https://discord.gg/supralabs" target="_blank" class="resource-card">
+                    <div class="resource-icon">💬</div>
+                    <div class="resource-info">
+                        <div class="resource-name">Dev Support</div>
+                        <div class="resource-desc">Join our Discord</div>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
@@ -860,4 +1023,4 @@
          window.addEventListener('load', init);
     </script>
 </body>
-</html>
+</html> '
