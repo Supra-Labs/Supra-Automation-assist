@@ -6,12 +6,12 @@
 - Auto-calculated expiry times using the exact formula you provided
 - Automation fee estimation using the Supra API
 - One-click copy for all values
-- Complete CLI template generator
+- Accurate CLI Command generation for Automation registry by Selecting Deployed Module and Entry Function!
 
 ## 🚀 Technical Implementation:
 
 - Fetches live data from Supra RPC endpoints
-- Calculates expiry time using your exact formula: last_reconfiguration_time/1000000 + 7200 + 300
+- Calculates expiry time using your exact formula: last_reconfiguration_time/1000000 + 7200(EPOCH Intervel) + 300(buffer)
 - Auto-updates every 30 seconds
 - Countdown timer updates every second
 
