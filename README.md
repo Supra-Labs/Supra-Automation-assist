@@ -20,9 +20,3 @@
 - Auto-updates every 30 seconds
 
 - Countdown timer updates every second
-
-## 📋 Ready-to-Use Values:
-
-- `--task-expiry-time-secs` (calculated automatically)
-- `--task-automation-fee-cap` (fetched from API)
-- Complete CLI command template

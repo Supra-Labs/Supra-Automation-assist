@@ -1,11 +1,8 @@
-// Supra Automation Assist - Enhanced JavaScript Helper
 let updateInterval;
 let countdownInterval;
 let epochData = {};
 let nextEpochTime = null;
-let maxTaskDuration = 7 * 24 * 60 * 60; // 7 days in seconds - fallback
-
-// Wizard State
+let maxTaskDuration = 7 * 24 * 60 * 60; // 7 days in seconds - fallback as suggested by Nolan
 let wizardState = {
     walletConnected: false,
     walletAddress: '',
@@ -17,22 +14,15 @@ let wizardState = {
     typeArgs: []
 };
 
-// Initialize the application
 function init() {
     console.log('Initializing Supra Automation Assist...');
     createFloatingLetters();
     createParticleSystem();
     updateDisplay();
-    
-    // Set up intervals
     updateInterval = setInterval(updateDisplay, 5000);
     countdownInterval = setInterval(updateCountdown, 1000);
-    
-    // Enable first step
     enableStep(1);
 }
-
-// Visual effects functions
 function createFloatingLetters() {
     const container = document.querySelector('.floating-letters');
     const characters = [
@@ -102,7 +92,6 @@ function createParticleSystem() {
     }
 }
 
-// Network data fetching functions
 async function fetchEpochData() {
     try {
         const response = await fetch('https://rpc-testnet.supra.com/rpc/v2/accounts/1/resources/0x1%3A%3Areconfiguration%3A%3AConfiguration');
@@ -139,13 +128,12 @@ async function fetchMaxTaskDuration() {
         }
     } catch (error) {
         console.error('Error fetching max task duration:', error);
-        // Keep fallback value
+        // still need to make sure we kep fallback value
     }
 }
 
 async function fetchAutomationFee() {
     try {
-        // Use user's max gas amount instead of hardcoded 50000
         const maxGasAmount = document.getElementById('maxGasAmount')?.value || '50000';
         
         const response = await fetch('https://rpc-testnet.supra.com/rpc/v2/view', {
@@ -173,7 +161,6 @@ async function fetchAutomationFee() {
     }
 }
 
-// Time calculation functions
 function calculateTimeToNextEpoch() {
     if (!nextEpochTime) return null;
     const now = Math.floor(Date.now() / 1000);  
@@ -243,7 +230,6 @@ async function updateDisplay() {
     console.log('Display updated successfully');
 }
 
-// Utility functions
 async function copyToClipboard(elementId, button) {
     const element = document.getElementById(elementId);
     const text = element.textContent;
@@ -266,8 +252,6 @@ async function copyToClipboard(elementId, button) {
         }, 2000);
     }
 }
-
-// Wallet connection functions
 function getStarkeyProvider() {
     if ('starkey' in window) {
         const provider = window.starkey?.supra;
@@ -358,8 +342,7 @@ function useManualAddress() {
         showNotification('Please enter a valid address', 'error');
         return;
     }
-    
-    // Basic address validation
+
     if (!manualAddress.startsWith('0x') || manualAddress.length !== 66) {
         showNotification('Invalid address format. Address should start with 0x and be 66 characters long', 'error');
         return;
@@ -381,7 +364,6 @@ function useManualAddress() {
     showNotification('Manual address set! Scanning for modules...', 'success');
 }
 
-// Module scanning and selection
 async function autoScanWalletModules(walletAddress) {
     try {
         document.getElementById('autoScanStatus').innerHTML = '🔍 Fetching modules from address...';
@@ -602,7 +584,7 @@ async function selectModule(moduleName, baseAddress, event) {
     }
 }
 
-// Enhanced function extraction - Only entry functions
+// Only entry functionsbased on Nolans feedbac
 function extractEntryFunctions(abi) {
     try {
         let functions = [];
@@ -616,7 +598,6 @@ function extractEntryFunctions(abi) {
         
         return functions
             .filter(func => {
-                // Only return functions where is_entry is explicitly true
                 return func.is_entry === true;
             })
             .map(func => ({
@@ -638,8 +619,6 @@ function displayFunctions(functions) {
     functions.forEach(func => {
         const functionCard = document.createElement('div');
         functionCard.className = 'function-card';
-        
-        // Filter out signer parameters for display
         const nonSignerParams = func.params.filter(param => param !== '&signer');
         const hasGenerics = func.generic_type_params && func.generic_type_params.length > 0;
         
@@ -667,13 +646,9 @@ function selectFunction(func, event) {
     updateAutomationParams();
     enableStep(4);
 }
-
-// Enhanced parameter input generation with proper types and validation
 function generateParameterInputs(params, genericParams = []) {
     const container = document.getElementById('functionParams');
     container.innerHTML = '';
-    
-    // Filter out signer parameters
     const nonSignerParams = params.filter(param => param !== '&signer');
     
     nonSignerParams.forEach((paramType, index) => {
@@ -701,8 +676,6 @@ function generateParameterInputs(params, genericParams = []) {
         `;
         container.appendChild(paramRow);
     });
-    
-    // Add type arguments section if function has generics
     if (genericParams.length > 0) {
         const typeArgsSection = document.createElement('div');
         typeArgsSection.className = 'type-args-section';
@@ -727,8 +700,6 @@ function generateParameterInputs(params, genericParams = []) {
         container.appendChild(typeArgsSection);
     }
 }
-
-// Type system helpers
 function getInputTypeForMoveType(moveType) {
     if (moveType.includes('u8') || moveType.includes('u16') || 
         moveType.includes('u32') || moveType.includes('u64') || 
@@ -773,23 +744,18 @@ function getHintForType(moveType) {
     return hints[moveType] || `Value of type ${moveType}`;
 }
 
-// Parameter validation
 function validateParameter(value, type) {
     if (!value && type !== 'bool') return { valid: false, error: 'This field is required' };
-    
     if (type === 'address') {
         if (!value.startsWith('0x') || value.length !== 66) {
             return { valid: false, error: 'Address must start with 0x and be 66 characters long' };
         }
     }
-    
     if (type.includes('u')) {
         const num = parseInt(value);
         if (isNaN(num) || num < 0) {
             return { valid: false, error: 'Must be a positive number' };
         }
-        
-        // Check ranges
         if (type === 'u8' && num > 255) {
             return { valid: false, error: 'Value must be between 0 and 255' };
         }
@@ -803,21 +769,14 @@ function validateParameter(value, type) {
     
     return { valid: true };
 }
-
-// Enhanced automation parameter updates with max duration check
 function updateAutomationParams() {
-    // Calculate expiry time with 7-day maximum
     const currentTime = Math.floor(Date.now() / 1000);
     const maxExpiryTime = currentTime + maxTaskDuration;
     const calculatedExpiryTime = calculateExpiryTime();
-    
-    // Use the minimum of calculated expiry time and max allowed
     const expiryTime = calculatedExpiryTime ? Math.min(calculatedExpiryTime, maxExpiryTime) : maxExpiryTime;
     
     document.getElementById('expiryTimeAuto').value = expiryTime;
     document.getElementById('expiryTimeAuto').max = maxExpiryTime;
-    
-    // Update automation fee based on current gas settings
     const automationFee = document.getElementById('feeCapValue').textContent;
     document.getElementById('automationFeeAuto').value = automationFee || 'Calculating...';
     
@@ -856,12 +815,9 @@ function generateDeploymentSummary() {
     `;
 }
 
-// Enhanced CLI command generation with type arguments and validation
 function generateCommand() {
     const deployStatus = document.getElementById('deployStatus');
     const generateBtn = document.getElementById('generateCommand');
-    
-    // Validate all required parameters first
     const paramInputs = document.querySelectorAll('#functionParams .param-input');
     let allValid = true;
     const functionArgs = [];
@@ -869,8 +825,7 @@ function generateCommand() {
     paramInputs.forEach(input => {
         const value = input.value.trim();
         const type = input.getAttribute('data-param-type');
-        
-        // Remove any existing error styling
+    
         input.classList.remove('invalid');
         const existingError = input.parentNode.querySelector('.param-error');
         if (existingError) existingError.remove();
@@ -887,8 +842,6 @@ function generateCommand() {
             functionArgs.push(value);
         }
     });
-    
-    // Validate type arguments if present
     const typeArgInputs = document.querySelectorAll('.type-arg-input');
     const typeArgs = [];
     typeArgInputs.forEach(input => {
@@ -919,13 +872,10 @@ function generateCommand() {
   --task-automation-fee-cap ${document.getElementById('automationFeeAuto').value} \\
   --function-id "${functionId}" \\`;
     
-    // Add type arguments if present
     if (typeArgs.length > 0) {
         cliCommand += `
   --type-args ${typeArgs.join(' ')} \\`;
     }
-    
-    // Add function arguments if present
     if (functionArgs.length > 0) {
         cliCommand += `
   --args ${functionArgs.join(' ')} \\`;
@@ -949,8 +899,6 @@ function generateCommand() {
         showNotification('CLI command generated successfully!', 'success');
     }, 1500);
 }
-
-// Utility functions
 function enableStep(stepNumber) {
     const step = document.getElementById(`step-${stepNumber}`);
     if (step) {
@@ -1001,24 +949,13 @@ function showNotification(message, type = 'info') {
         }, 300);
     }, 5000);
 }
-
-// Event listeners and initialization
 document.addEventListener('DOMContentLoaded', function() {
-    // Connect wallet button
     document.getElementById('connectWallet').addEventListener('click', connectStarkeyWallet);
-    
-    // Manual address button
     document.getElementById('useManualAddress').addEventListener('click', useManualAddress);
-    
-    // Generate command button
     document.getElementById('generateCommand').addEventListener('click', generateCommand);
-    
-    // Max gas amount change listener to update automation fee
     document.getElementById('maxGasAmount').addEventListener('change', function() {
-        updateDisplay(); // This will recalculate the automation fee
+        updateDisplay();
     });
-    
-    // Watch for changes in calculated values to update automation params
     const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.target.id === 'expiryTimeValue' || mutation.target.id === 'feeCapValue') {
@@ -1028,15 +965,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    
     observer.observe(document.getElementById('expiryTimeValue'), { childList: true, characterData: true, subtree: true });
     observer.observe(document.getElementById('feeCapValue'), { childList: true, characterData: true, subtree: true });
-    
-    // Initialize the application
     init();
 });
 
-// Cleanup on page unload
 window.addEventListener('beforeunload', () => {
     if (updateInterval) clearInterval(updateInterval);
     if (countdownInterval) clearInterval(countdownInterval);
