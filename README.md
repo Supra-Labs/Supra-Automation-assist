@@ -12,8 +12,6 @@
 
 - CLI Command generation for Automation registry by Selecting Deployed Module and Entry Function!
 
-## 🚀 Technical Implementation:
-
 - Fetches live data from Supra RPC endpoints
 
 - Calculates expiry time using your exact formula: 
