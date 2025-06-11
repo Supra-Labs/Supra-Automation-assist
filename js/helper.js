@@ -888,7 +888,6 @@ function generateCommand() {
         deployStatus.style.display = 'block';
         deployStatus.className = 'deploy-status success';
         deployStatus.innerHTML = `
-            <h4>✅ CLI Command Generated!</h4>
             <div style="background: rgba(53, 63, 74, 0.4); padding: 1rem; border-radius: 8px; margin: 1rem 0; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">${cliCommand}</div>
             <button onclick="copyToClipboard('deployStatus', this)" style="background: linear-gradient(135deg, #DD1438, #c41030); border: none; color: white; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">Copy Command</button>
         `;
