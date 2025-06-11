@@ -134,7 +134,7 @@ async function fetchMaxTaskDuration() {
 
 async function fetchAutomationFee() {
     try {
-        const maxGasAmount = document.getElementById('maxGasAmount')?.value || '50000';
+        const maxGasAmount = document.getElementById('maxGasAmount')?.value || '5000';
         
         const response = await fetch('https://rpc-testnet.supra.com/rpc/v2/view', {
             method: 'POST',
@@ -218,7 +218,7 @@ async function updateDisplay() {
     document.getElementById('feeCapValue').textContent = automationFee;
     
     const cliTemplate = `supra move automation register \\
-  --task-max-gas-amount 50000 \\
+  --task-max-gas-amount 5000 \\
   --task-gas-price-cap 200 \\
   --task-expiry-time-secs ${expiryTime} \\
   --task-automation-fee-cap ${automationFee} \\
