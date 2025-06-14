@@ -865,31 +865,22 @@ function generateCommand() {
     
     const functionId = `${wizardState.walletAddress}::${wizardState.selectedModule}::${wizardState.selectedFunction}`;
     
-    let cliCommand = `supra move automation register \\
-  --task-max-gas-amount ${document.getElementById('maxGasAmount').value} \\
-  --task-gas-price-cap ${document.getElementById('gasPriceCap').value} \\
-  --task-expiry-time-secs ${document.getElementById('expiryTimeAuto').value} \\
-  --task-automation-fee-cap ${document.getElementById('automationFeeAuto').value} \\
-  --function-id "${functionId}" \\`;
-    
+    let cliCommand = `supra move automation register --task-max-gas-amount ${document.getElementById('maxGasAmount').value} --task-gas-price-cap ${document.getElementById('gasPriceCap').value} --task-expiry-time-secs ${document.getElementById('expiryTimeAuto').value} --task-automation-fee-cap ${document.getElementById('automationFeeAuto').value} --function-id "${functionId}" `;
     if (typeArgs.length > 0) {
-        cliCommand += `
-  --type-args ${typeArgs.join(' ')} \\`;
+        cliCommand += ` --type-args ${typeArgs.join(' ')} `;
     }
     if (functionArgs.length > 0) {
-        cliCommand += `
-  --args ${functionArgs.join(' ')} \\`;
+        cliCommand += ` --args ${functionArgs.join(' ')} `;
     }
     
-    cliCommand += `
-  --rpc-url https://rpc-testnet.supra.com`;
+    cliCommand += ` --rpc-url https://rpc-testnet.supra.com`;
     
     setTimeout(() => {
         deployStatus.style.display = 'block';
         deployStatus.className = 'deploy-status success';
         deployStatus.innerHTML = `
             <div style="background: rgba(53, 63, 74, 0.4); padding: 1rem; border-radius: 8px; margin: 1rem 0; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">${cliCommand}</div>
-            <button onclick="copyToClipboard('deployStatus', this)" style="background: linear-gradient(135deg, #DD1438, #c41030); border: none; color: white; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">Copy Command</button>
+            <button onclick="copyToClipboard('deployStatus', this)" style="background: linear-gradient(135deg, #DD1438, #c41030); border: none; color: white; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">COPY</button>
         `;
         
         generateBtn.disabled = false;
