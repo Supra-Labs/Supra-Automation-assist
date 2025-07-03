@@ -134,7 +134,7 @@ async function fetchMaxTaskDuration() {
 
 async function fetchAutomationFee() {
     try {
-        const maxGasAmount = document.getElementById('maxGasAmount')?.value || '5000';
+        const maxGasAmount = document.getElementById('maxGasAmount')?.value || '50000';
         
         const response = await fetch('https://rpc-testnet.supra.com/rpc/v2/view', {
             method: 'POST',
