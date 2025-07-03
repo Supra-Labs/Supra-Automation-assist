@@ -157,7 +157,7 @@ async function fetchAutomationFee() {
         }
     } catch (error) {
         console.error('Error fetching automation fee:', error);
-        return 1440000000; 
+        return 1929736800; 
     }
 }
 
