@@ -23,6 +23,7 @@ function init() {
     countdownInterval = setInterval(updateCountdown, 1000);
     enableStep(1);
 }
+
 function createFloatingLetters() {
     const container = document.querySelector('.floating-letters');
     const characters = [
@@ -252,6 +253,7 @@ async function copyToClipboard(elementId, button) {
         }, 2000);
     }
 }
+
 function getStarkeyProvider() {
     if ('starkey' in window) {
         const provider = window.starkey?.supra;
@@ -366,62 +368,80 @@ function useManualAddress() {
 
 async function autoScanWalletModules(walletAddress) {
     try {
-        document.getElementById('autoScanStatus').innerHTML = '🔍 Fetching modules from address...';
-        
-        const response = await fetch(`https://rpc-testnet.supra.com/rpc/v2/accounts/${walletAddress}/modules`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log('Auto-scan API response:', data);
+        document.getElementById('autoScanStatus').innerHTML = '🔍 Fetching latest modules from address...';
         
         let modules = [];
+        let apiUsed = '';
         
-        if (data && data.modules && Array.isArray(data.modules)) {
-            modules = data.modules.map((module, index) => {
-                let moduleName = `Module_${index + 1}`;
-                
-                if (typeof module === 'string') {
-                    moduleName = module;
-                } else if (module && typeof module === 'object') {
-                    moduleName = module.name || 
-                                module.module_name || 
-                                module.module || 
-                                module.address?.split('::').pop() ||
-                                (module.abi && module.abi.name) ||
-                                `Module_${index + 1}`;
-                }
-                
-                return {
-                    name: moduleName,
-                    bytecode: 'Available',
-                    abi: module.abi || module,
-                    raw: module
-                };
-            });
-        } else if (Array.isArray(data)) {
-            modules = data.map((module, index) => ({
-                name: module.name || module.module_name || `Module_${index + 1}`,
-                bytecode: 'Available',
-                abi: module.abi || module,
-                raw: module
-            }));
+        // Try v3 API first (latest) - gets the most recent 20 modules
+        try {
+            const responseV3 = await fetch(`https://rpc-testnet.supra.com/rpc/v3/accounts/${walletAddress}/modules`);
+            if (responseV3.ok) {
+                const dataV3 = await responseV3.json();
+                console.log('v3 API response:', dataV3);
+                modules = parseModulesFromResponse(dataV3, 'v3');
+                apiUsed = 'v3';
+                console.log(`Successfully fetched ${modules.length} latest modules from v3 API`);
+            } else {
+                console.log(`v3 API failed with status: ${responseV3.status}`);
+            }
+        } catch (error) {
+            console.log('v3 API error:', error);
         }
         
-        const validModules = modules.filter(module => 
-            module.name !== 'Unknown' && 
-            module.name !== 'modules' && 
-            module.name !== 'cursor' &&
-            module.name.length > 1
-        );
+        // If v3 failed, try v2 API as fallback
+        if (modules.length === 0) {
+            console.log('Trying v2 API as fallback...');
+            try {
+                const responseV2 = await fetch(`https://rpc-testnet.supra.com/rpc/v2/accounts/${walletAddress}/modules`);
+                if (responseV2.ok) {
+                    const dataV2 = await responseV2.json();
+                    console.log('v2 API response:', dataV2);
+                    modules = parseModulesFromResponse(dataV2, 'v2');
+                    apiUsed = 'v2';
+                    console.log(`Successfully fetched ${modules.length} latest modules from v2 API`);
+                } else {
+                    console.log(`v2 API failed with status: ${responseV2.status}`);
+                }
+            } catch (error) {
+                console.log('v2 API error:', error);
+                throw new Error('Both v2 and v3 APIs failed');
+            }
+        }
+        
+        console.log(`Total latest modules fetched: ${modules.length}`);
+        
+        // Show ALL modules - minimal filtering to only remove clearly invalid ones
+        const validModules = modules.filter(module => {
+            const isValid = module.name && 
+                           module.name.trim() !== '' &&
+                           module.name !== 'Unknown' &&
+                           module.name !== 'cursor' &&
+                           module.name !== 'modules';
+            
+            if (!isValid) {
+                console.log(`Filtering out invalid module:`, module);
+            }
+            return isValid;
+        });
+        
+        console.log(`After filtering: ${validModules.length} valid modules`);
+        console.log('Valid module names:', validModules.map(m => m.name));
         
         if (validModules.length > 0) {
-            document.getElementById('autoScanStatus').innerHTML = `✅ Found ${validModules.length} modules!`;
+            document.getElementById('autoScanStatus').innerHTML = `✅ Found ${validModules.length} latest modules using ${apiUsed} API!`;
             displayModules(validModules, walletAddress);
-            enableStep(2);  
-            showNotification(`Found ${validModules.length} modules at the address!`, 'success');
+            enableStep(2);  // Enable Select Module
+            enableStep(3);  // Enable View Automated Tasks
+            
+            // Fetch automated tasks immediately after wallet connection
+            try {
+                await fetchAutomatedTasks(walletAddress);
+            } catch (error) {
+                console.log('Could not fetch automated tasks:', error);
+            }
+            
+            showNotification(`Found ${validModules.length} latest modules at the address!`, 'success');
         } else {
             throw new Error('No modules found at address');
         }
@@ -445,9 +465,95 @@ async function autoScanWalletModules(walletAddress) {
         ];
         
         displayModules(demoModules, walletAddress);
-        enableStep(2);
+        enableStep(2);  // Enable Select Module
+        enableStep(3);  // Enable View Automated Tasks
+        
+        // Try to fetch automated tasks even in demo mode
+        try {
+            await fetchAutomatedTasks(walletAddress);
+        } catch (error) {
+            console.log('Could not fetch automated tasks in demo mode:', error);
+        }
+        
         showNotification('Demo modules loaded from example wallet', 'info');
     }
+}
+
+// Helper function to parse modules from different API response formats
+function parseModulesFromResponse(data, apiVersion) {
+    let modules = [];
+    
+    console.log(`Parsing ${apiVersion} API response. Data type:`, typeof data, 'Length:', Array.isArray(data) ? data.length : 'Not an array');
+    console.log('Raw data structure:', data);
+    
+    if (Array.isArray(data)) {
+        // v3 API returns direct array of module objects
+        console.log(`Direct array found with ${data.length} items`);
+        modules = data.map((module, index) => {
+            const parsed = parseModuleItem(module, index);
+            console.log(`Module ${index + 1}: ${parsed.name}`, parsed);
+            return parsed;
+        });
+    } else if (data && data.data && Array.isArray(data.data)) {
+        // Handle the case where modules are in data.data
+        console.log(`Data.data array found with ${data.data.length} items`);
+        modules = data.data.map((module, index) => {
+            const parsed = parseModuleItem(module, index);
+            console.log(`Module ${index + 1}: ${parsed.name}`, parsed);
+            return parsed;
+        });
+    } else if (data && data.modules && Array.isArray(data.modules)) {
+        // Handle the case where modules are in data.modules
+        console.log(`Data.modules array found with ${data.modules.length} items`);
+        modules = data.modules.map((module, index) => {
+            const parsed = parseModuleItem(module, index);
+            console.log(`Module ${index + 1}: ${parsed.name}`, parsed);
+            return parsed;
+        });
+    } else {
+        console.log('Unexpected API response format:', data);
+    }
+    
+    console.log(`Total modules parsed: ${modules.length}`);
+    return modules;
+}
+
+// Helper function to parse individual module item
+function parseModuleItem(module, index) {
+    let moduleName = `Module_${index + 1}`;
+    
+    if (typeof module === 'string') {
+        // Module is just a string name
+        moduleName = module;
+    } else if (module && typeof module === 'object') {
+        // Check if it has the v3 API structure: { bytecode: "...", abi: { name: "..." } }
+        if (module.abi && module.abi.name) {
+            moduleName = module.abi.name;
+        } 
+        // Check for other possible structures
+        else if (module.name) {
+            moduleName = module.name;
+        }
+        else if (module.module_name) {
+            moduleName = module.module_name;
+        }
+        else if (module.module) {
+            moduleName = module.module;
+        }
+        else if (module.address) {
+            const parts = module.address.split('::');
+            if (parts.length > 0) {
+                moduleName = parts[parts.length - 1];
+            }
+        }
+    }
+    
+    return {
+        name: moduleName,
+        bytecode: module.bytecode || 'Available',
+        abi: module.abi || module,
+        raw: module
+    };
 }
 
 function displayModules(modules, baseAddress) {
@@ -466,11 +572,187 @@ function displayModules(modules, baseAddress) {
     });
 }
 
+// NEW: Fetch automated tasks function
+async function fetchAutomatedTasks(walletAddress) {
+    try {
+        document.getElementById('tasksLoading').style.display = 'flex';
+        document.getElementById('automatedTasksList').innerHTML = '';
+        document.getElementById('noTasksState').style.display = 'none';
+        
+        const response = await fetch(`https://rpc-testnet.supra.com/rpc/v3/accounts/${walletAddress}/automated_transactions`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('Automated tasks API response:', data);
+        
+        let tasks = [];
+        
+        // Parse the response based on different possible structures
+        if (data && data.data && Array.isArray(data.data)) {
+            tasks = data.data;
+        } else if (data && Array.isArray(data)) {
+            tasks = data;
+        } else if (data && data.automated_transactions && Array.isArray(data.automated_transactions)) {
+            tasks = data.automated_transactions;
+        } else if (data && data.transactions && Array.isArray(data.transactions)) {
+            tasks = data.transactions;
+        }
+        
+        document.getElementById('tasksLoading').style.display = 'none';
+        
+        if (tasks.length > 0) {
+            displayAutomatedTasks(tasks);
+            showNotification(`Found ${tasks.length} automated tasks!`, 'success');
+        } else {
+            document.getElementById('noTasksState').style.display = 'block';
+            showNotification('No automated tasks found for this address', 'info');
+        }
+        
+    } catch (error) {
+        console.error('Error fetching automated tasks:', error);
+        document.getElementById('tasksLoading').style.display = 'none';
+        document.getElementById('noTasksState').style.display = 'block';
+        
+        // Show error message in the empty state
+        document.getElementById('noTasksState').innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">⚠️</div>
+                <div class="empty-title">Failed to Load Tasks</div>
+                <div class="empty-desc">Could not fetch automated tasks. ${error.message}</div>
+            </div>
+        `;
+        
+        showNotification('Failed to load automated tasks', 'error');
+    }
+}
+
+// NEW: Display automated tasks function
+function displayAutomatedTasks(tasks) {
+    const tasksList = document.getElementById('automatedTasksList');
+    tasksList.innerHTML = '';
+    
+    tasks.forEach((task, index) => {
+        const taskCard = document.createElement('div');
+        taskCard.className = 'task-card';
+        
+        // Extract task information from the actual API structure
+        const taskId = task.hash || `task_${index}`;
+        const status = task.status || 'Unknown';
+        
+        // Function is in payload.Move.function
+        let functionId = 'Unknown';
+        if (task.payload && task.payload.Move && task.payload.Move.function) {
+            functionId = task.payload.Move.function;
+            // Extract just the function name from the full path
+            const functionParts = functionId.split('::');
+            if (functionParts.length >= 3) {
+                functionId = functionParts[functionParts.length - 1]; // Get the last part
+            }
+        }
+        
+        // Gas amount is in header.max_gas_amount
+        const gasAmount = (task.header && task.header.max_gas_amount) || 'Unknown';
+        
+        // Gas used is in output.Move.gas_used
+        const gasUsed = (task.output && task.output.Move && task.output.Move.gas_used) || 'Unknown';
+        
+        // Creation time is in block_header.timestamp
+        let createdDisplay = 'Unknown';
+        if (task.block_header && task.block_header.timestamp) {
+            try {
+                let timestamp;
+                if (task.block_header.timestamp.utc_date_time) {
+                    // Use the formatted date if available
+                    createdDisplay = new Date(task.block_header.timestamp.utc_date_time).toLocaleString();
+                } else if (task.block_header.timestamp.microseconds_since_unix_epoch) {
+                    // Convert microseconds to milliseconds
+                    timestamp = parseInt(task.block_header.timestamp.microseconds_since_unix_epoch) / 1000;
+                    createdDisplay = new Date(timestamp).toLocaleString();
+                }
+            } catch (e) {
+                createdDisplay = task.block_header.timestamp.utc_date_time || 'Unknown';
+            }
+        }
+        
+        // Expiry time is in header.expiration_timestamp
+        let expiryDisplay = 'Unknown';
+        if (task.header && task.header.expiration_timestamp) {
+            try {
+                if (task.header.expiration_timestamp.utc_date_time) {
+                    // Use the formatted date if available
+                    expiryDisplay = new Date(task.header.expiration_timestamp.utc_date_time).toLocaleString();
+                } else if (task.header.expiration_timestamp.microseconds_since_unix_epoch) {
+                    // Convert microseconds to milliseconds
+                    const timestamp = parseInt(task.header.expiration_timestamp.microseconds_since_unix_epoch) / 1000;
+                    expiryDisplay = new Date(timestamp).toLocaleString();
+                }
+            } catch (e) {
+                expiryDisplay = task.header.expiration_timestamp.utc_date_time || 'Unknown';
+            }
+        }
+        
+        // Status color
+        let statusColor = '#9EABB5';
+        if (status.toLowerCase().includes('active') || status.toLowerCase().includes('running')) {
+            statusColor = '#00ff88';
+        } else if (status.toLowerCase().includes('completed') || status.toLowerCase().includes('success')) {
+            statusColor = '#00ff88';
+        } else if (status.toLowerCase().includes('failed') || status.toLowerCase().includes('error')) {
+            statusColor = '#ff6b6b';
+        } else if (status.toLowerCase().includes('expired')) {
+            statusColor = '#ffaa00';
+        }
+        
+        taskCard.innerHTML = `
+            <div class="task-header">
+                <div class="task-id">Task: ${taskId.slice(0, 8)}...${taskId.slice(-8)}</div>
+                <div class="task-status" style="color: ${statusColor};">
+                    <span class="status-dot" style="background: ${statusColor};"></span>
+                    ${status}
+                </div>
+            </div>
+            <div class="task-details">
+                <div class="task-detail">
+                    <span class="detail-label">Function:</span>
+                    <span class="detail-value" title="${task.payload && task.payload.Move && task.payload.Move.function}">${functionId}</span>
+                </div>
+                <div class="task-detail">
+                    <span class="detail-label">Max Gas:</span>
+                    <span class="detail-value">${gasAmount}</span>
+                </div>
+                <div class="task-detail">
+                    <span class="detail-label">Gas Used:</span>
+                    <span class="detail-value">${gasUsed}</span>
+                </div>
+                <div class="task-detail">
+                    <span class="detail-label">Created:</span>
+                    <span class="detail-value">${createdDisplay}</span>
+                </div>
+                <div class="task-detail">
+                    <span class="detail-label">Expires:</span>
+                    <span class="detail-value">${expiryDisplay}</span>
+                </div>
+            </div>
+        `;
+        
+        tasksList.appendChild(taskCard);
+    });
+}
+
 async function selectModule(moduleName, baseAddress, event) {
     document.querySelectorAll('.module-card').forEach(card => card.classList.remove('selected'));
     event.currentTarget.classList.add('selected');
     
     wizardState.selectedModule = moduleName;
+    
+    // Fetch automated tasks for this address
+    await fetchAutomatedTasks(baseAddress);
+    
+    // Enable step 3 (automated tasks)
+    enableStep(3);
     
     document.getElementById('abiLoading').style.display = 'flex';
     
@@ -524,7 +806,6 @@ async function selectModule(moduleName, baseAddress, event) {
             const entryFunctions = extractEntryFunctions(moduleABI);
             if (entryFunctions.length > 0) {
                 displayFunctions(entryFunctions);
-                enableStep(3);
                 showNotification(`Found ${entryFunctions.length} entry functions!`, 'success');
                 return;  
             } else {
@@ -577,14 +858,13 @@ async function selectModule(moduleName, baseAddress, event) {
                 break;
         }
         displayFunctions(demoFunctions);
-        enableStep(3);
         showNotification(`Loaded ${demoFunctions.length} demo functions for ${moduleName}`, 'info');
     } finally {
         document.getElementById('abiLoading').style.display = 'none';
     }
 }
 
-// Only entry functionsbased on Nolans feedbac
+// Only entry functions based on Nolans feedback
 function extractEntryFunctions(abi) {
     try {
         let functions = [];
@@ -644,8 +924,9 @@ function selectFunction(func, event) {
     
     generateParameterInputs(func.params, func.generic_type_params || []);
     updateAutomationParams();
-    enableStep(4);
+    enableStep(5); // Updated to step 5
 }
+
 function generateParameterInputs(params, genericParams = []) {
     const container = document.getElementById('functionParams');
     container.innerHTML = '';
@@ -700,6 +981,7 @@ function generateParameterInputs(params, genericParams = []) {
         container.appendChild(typeArgsSection);
     }
 }
+
 function getInputTypeForMoveType(moveType) {
     if (moveType.includes('u8') || moveType.includes('u16') || 
         moveType.includes('u32') || moveType.includes('u64') || 
@@ -769,6 +1051,7 @@ function validateParameter(value, type) {
     
     return { valid: true };
 }
+
 function updateAutomationParams() {
     const currentTime = Math.floor(Date.now() / 1000);
     const maxExpiryTime = currentTime + maxTaskDuration;
@@ -781,7 +1064,7 @@ function updateAutomationParams() {
     document.getElementById('automationFeeAuto').value = automationFee || 'Calculating...';
     
     generateDeploymentSummary();
-    enableStep(5); 
+    enableStep(6); // Updated to step 6
 }
 
 function generateDeploymentSummary() {
@@ -889,6 +1172,7 @@ function generateCommand() {
         showNotification('CLI command generated successfully!', 'success');
     }, 1500);
 }
+
 function enableStep(stepNumber) {
     const step = document.getElementById(`step-${stepNumber}`);
     if (step) {
@@ -939,6 +1223,7 @@ function showNotification(message, type = 'info') {
         }, 300);
     }, 5000);
 }
+
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('connectWallet').addEventListener('click', connectStarkeyWallet);
     document.getElementById('useManualAddress').addEventListener('click', useManualAddress);
@@ -946,6 +1231,18 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('maxGasAmount').addEventListener('change', function() {
         updateDisplay();
     });
+    
+    // NEW: Event listeners for automated tasks
+    document.getElementById('refreshTasks').addEventListener('click', function() {
+        if (wizardState.walletAddress) {
+            fetchAutomatedTasks(wizardState.walletAddress);
+        }
+    });
+    
+    document.getElementById('continueToFunctions').addEventListener('click', function() {
+        enableStep(4); // Continue to Select Entry Function step
+    });
+    
     const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.target.id === 'expiryTimeValue' || mutation.target.id === 'feeCapValue') {

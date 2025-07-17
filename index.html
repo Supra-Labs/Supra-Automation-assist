@@ -78,7 +78,7 @@
         <!-- Automation CLI Generator Section -->
         <div class="automation-section">
             <h3 class="automation-title">🤖 Automation Registry CLI Command Generator</h3>
-            <p class="automation-subtitle">Connect wallet or enter address → Select module → Generate CLI command</p>
+            <p class="automation-subtitle">Connect wallet → View existing tasks & Select module → Generate CLI command</p>
             
             <div class="wizard-container">
                 <div class="wizard-step" id="step-1">
@@ -119,6 +119,7 @@
                         </div>
                     </div>
                 </div>
+                
                 <div class="wizard-step disabled" id="step-2">
                     <div class="step-header">
                         <div class="step-number">2</div>
@@ -136,9 +137,52 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- NEW: Automated Tasks Section -->
                 <div class="wizard-step disabled" id="step-3">
                     <div class="step-header">
                         <div class="step-number">3</div>
+                        <div class="step-info">
+                            <div class="step-title">View Automated Tasks</div>
+                            <div class="step-desc">See your existing automated tasks and their status</div>
+                        </div>
+                    </div>
+                    <div class="step-content">
+                        <div class="automated-tasks-container">
+                            <div class="tasks-header">
+                                <h4>Your Automated Tasks</h4>
+                                <button class="refresh-btn" id="refreshTasks">
+                                    <div class="btn-icon">🔄</div>
+                                    <div class="btn-text">Refresh</div>
+                                </button>
+                            </div>
+                            <div class="loading-state" id="tasksLoading" style="display: none;">
+                                <div class="loading-spinner"></div>
+                                <span>Loading automated tasks...</span>
+                            </div>
+                            <div class="tasks-grid" id="automatedTasksList">
+                                <!-- Tasks will be populated here -->
+                            </div>
+                            <div class="no-tasks-state" id="noTasksState" style="display: none;">
+                                <div class="empty-state">
+                                    <div class="empty-icon">📋</div>
+                                    <div class="empty-title">No Automated Tasks Found</div>
+                                    <div class="empty-desc">You haven't created any automated tasks yet. Continue to create your first one!</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="continue-actions">
+                            <button class="continue-btn" id="continueToFunctions">
+                                <div class="btn-icon">➡️</div>
+                                <div class="btn-text">Continue to Create New Task</div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="wizard-step disabled" id="step-4">
+                    <div class="step-header">
+                        <div class="step-number">4</div>
                         <div class="step-info">
                             <div class="step-title">Select Entry Function</div>
                             <div class="step-desc">Pick the entry function to automate (only entry functions are shown)</div>
@@ -149,9 +193,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="wizard-step disabled" id="step-4">
+                
+                <div class="wizard-step disabled" id="step-5">
                     <div class="step-header">
-                        <div class="step-number">4</div>
+                        <div class="step-number">5</div>
                         <div class="step-info">
                             <div class="step-title">Configure Parameters</div>
                             <div class="step-desc">Set function arguments and automation settings</div>
@@ -210,9 +255,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="wizard-step disabled" id="step-5">
+                
+                <div class="wizard-step disabled" id="step-6">
                     <div class="step-header">
-                        <div class="step-number">5</div>
+                        <div class="step-number">6</div>
                         <div class="step-info">
                             <div class="step-title">Generate CLI Command</div>
                             <div class="step-desc">Get your ready-to-use automation deployment command</div>
@@ -236,6 +282,7 @@
                 </div>
             </div>
         </div>
+        
         <div class="resources-section">
             <h3 class="resources-title">Automation Dev Resources</h3>
             
