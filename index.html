@@ -74,8 +74,6 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Automation CLI Generator Section -->
         <div class="automation-section">
             <h3 class="automation-title">🤖 Automation Registry CLI Command Generator</h3>
             <p class="automation-subtitle">Connect wallet → View existing tasks & Select module → Generate CLI command</p>
@@ -109,7 +107,25 @@
                                 <div class="btn-text">Use Address</div>
                             </button>
                         </div>
-                        
+                        <div class="input-group" id="moduleCountGroup">
+                            <label for="moduleCount" style="color: #9EABB5; font-weight: 600; margin-bottom: 0.5rem; display: block;">
+                                Number of modules to fetch:
+                                <div class="hint-icon">?
+                                    <div class="hint-tooltip">Specify how many modules to fetch from your account. Default is 20, but you can increase it to see more modules (recommended: 40-50 for most users).</div>
+                                </div>
+                            </label>
+                            <input type="number" 
+                                   id="moduleCount" 
+                                   class="wizard-input" 
+                                   placeholder="Enter number of modules (default: 20)"
+                                   value="50"
+                                   min="1"
+                                   max="200"
+                                   style="width: 200px; margin-right: 1rem;">
+                            <small style="color: #9EABB5; font-size: 0.8rem; margin-top: 0.25rem; display: block;">
+                                Recommended: 40-50 modules. Max: 200
+                            </small>
+                        </div>                        
                         <div class="wallet-status" id="walletStatus" style="display: none;">
                             <div class="status-connected">✅ Connected: <span id="walletAddress"></span></div>
                         </div>
@@ -118,8 +134,7 @@
                             <span>Scanning for modules...</span>
                         </div>
                     </div>
-                </div>
-                
+                </div>                
                 <div class="wizard-step disabled" id="step-2">
                     <div class="step-header">
                         <div class="step-number">2</div>
@@ -137,8 +152,6 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- NEW: Automated Tasks Section -->
                 <div class="wizard-step disabled" id="step-3">
                     <div class="step-header">
                         <div class="step-number">3</div>
@@ -161,7 +174,6 @@
                                 <span>Loading automated tasks...</span>
                             </div>
                             <div class="tasks-grid" id="automatedTasksList">
-                                <!-- Tasks will be populated here -->
                             </div>
                             <div class="no-tasks-state" id="noTasksState" style="display: none;">
                                 <div class="empty-state">
@@ -179,7 +191,6 @@
                         </div>
                     </div>
                 </div>
-                
                 <div class="wizard-step disabled" id="step-4">
                     <div class="step-header">
                         <div class="step-number">4</div>
@@ -192,8 +203,7 @@
                         <div class="functions-grid" id="functionsList">
                         </div>
                     </div>
-                </div>
-                
+                </div>                
                 <div class="wizard-step disabled" id="step-5">
                     <div class="step-header">
                         <div class="step-number">5</div>
@@ -284,8 +294,7 @@
         </div>
         
         <div class="resources-section">
-            <h3 class="resources-title">Automation Dev Resources</h3>
-            
+            <h3 class="resources-title">Automation Dev Resources</h3>    
             <div class="resources-grid">
                 <a href="https://docs.supra.com/network/move/getting-started/supra-cli-with-docker" target="_blank" class="resource-card">
                     <div class="resource-icon">🛠️</div>

@@ -720,6 +720,51 @@ body {
     box-shadow: 0 0 0 2px rgba(221, 20, 56, 0.1);
 }
 
+#moduleCountGroup {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: rgba(53, 63, 74, 0.2);
+    border: 1px solid rgba(106, 115, 124, 0.2);
+    border-radius: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+#moduleCountGroup label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #9EABB5;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+#moduleCount {
+    width: 200px;
+    margin-right: 1rem;
+}
+
+#moduleCount:focus {
+    outline: none;
+    border-color: rgba(221, 20, 56, 0.5);
+    box-shadow: 0 0 0 2px rgba(221, 20, 56, 0.1);
+}
+
+#moduleCountGroup .hint-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: rgba(221, 20, 56, 0.2);
+    border: 1px solid rgba(221, 20, 56, 0.3);
+    border-radius: 50%;
+    cursor: help;
+    font-size: 12px;
+    color: #DD1438;
+    position: relative;
+}
+
 /* Loading State */
 .loading-state {
     display: flex;
@@ -802,7 +847,6 @@ body {
     color: #9EABB5;
 }
 
-/* NEW: Automated Tasks Styles */
 .automated-tasks-container {
     margin-bottom: 1.5rem;
 }
@@ -992,7 +1036,6 @@ body {
     font-size: 1.2rem;
 }
 
-/* Parameters */
 .params-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1324,5 +1367,15 @@ body {
     .detail-value {
         text-align: left;
         max-width: 100%;
+    }
+    
+    /* NEW: Responsive design for module count input */
+    #moduleCountGroup {
+        padding: 0.75rem;
+    }
+    
+    #moduleCount {
+        width: 100%;
+        margin-right: 0;
     }
 }
