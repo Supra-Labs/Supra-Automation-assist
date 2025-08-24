@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" href="assets/logo.png" type="image/png">
+    <script type="module">
+        import { SupraClient, HexString, BCS } from 'https://esm.sh/supra-l1-sdk@latest';
+        window.SupraClient = SupraClient;
+        window.HexString = HexString;
+        window.BCS = BCS;
+    </script>
 </head>
 <body>
 
@@ -75,8 +81,8 @@
             </div>
         </div>
         <div class="automation-section">
-            <h3 class="automation-title">🤖 Automation Registry CLI Command Generator</h3>
-            <p class="automation-subtitle">Connect wallet → View existing tasks & Select module → Generate CLI command</p>
+            <h3 class="automation-title">🤖 Automation Registry CLI Command Generator & Transaction Signer</h3>
+            <p class="automation-subtitle">Connect wallet → View existing tasks & Select module → Generate CLI command → Sign & Submit Transaction</p>
             
             <div class="wizard-container">
                 <div class="wizard-step" id="step-1">
@@ -270,8 +276,8 @@
                     <div class="step-header">
                         <div class="step-number">6</div>
                         <div class="step-info">
-                            <div class="step-title">Generate CLI Command</div>
-                            <div class="step-desc">Get your ready-to-use automation deployment command</div>
+                            <div class="step-title">Generate CLI Command or Sign Transaction</div>
+                            <div class="step-desc">Get your ready-to-use automation deployment command or sign directly with wallet</div>
                         </div>
                     </div>
                     <div class="step-content">
@@ -285,8 +291,14 @@
                                 <div class="btn-icon">📋</div>
                                 <div class="btn-text">Generate CLI Command</div>
                             </button>
+                            <button class="deploy-btn" id="signTransaction" style="background: linear-gradient(135deg, #00ff88, #00cc6a); margin-left: 1rem;">
+                                <div class="btn-icon">✍️</div>
+                                <div class="btn-text">Sign & Submit Transaction</div>
+                            </button>
                         </div>
                         <div class="deploy-status" id="deployStatus" style="display: none;">
+                        </div>
+                        <div class="transaction-status" id="transactionStatus" style="display: none;">
                         </div>
                     </div>
                 </div>
