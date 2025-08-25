@@ -2,8 +2,8 @@ let updateInterval;
 let countdownInterval;
 let epochData = {};
 let nextEpochTime = null;
-let maxTaskDuration = 7 * 24 * 60 * 60;
-let supraSdkClient = null;
+let maxTaskDuration = 7 * 24 * 60 * 60; // 7 days in seconds - fallback as suggested by Nolan
+let supraSdkClient = null; // Supra SDK client instance
 let wizardState = {
     walletConnected: false,
     walletAddress: '',
@@ -13,7 +13,7 @@ let wizardState = {
     functionParams: [],
     hasGenerics: false,
     typeArgs: [],
-    walletProvider: null
+    walletProvider: null // StarKey wallet provider
 };
 
 function init() {
@@ -29,38 +29,17 @@ function init() {
 
 async function initializeSupraSDK() {
     try {
-        if (window.supraSDKError) {
-            throw new Error('SDK failed to load from CDN');
+        // Wait for SDK to be loaded
+        while (!window.SupraClient) {
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
         
-        let attempts = 0;
-        while (!window.SupraClient && attempts < 50) {
-            await new Promise(resolve => setTimeout(resolve, 200));
-            attempts++;
-        }
-        
-        if (!window.SupraClient) {
-            throw new Error('Supra SDK not available after waiting');
-        }
-        
+        // Initialize Supra SDK client
         supraSdkClient = new window.SupraClient('https://rpc-testnet.supra.com');
         console.log('Supra SDK initialized successfully');
-        
-        const testResponse = await fetch('https://rpc-testnet.supra.com/rpc/v2/accounts/1');
-        if (!testResponse.ok) {
-            throw new Error('RPC endpoint not accessible');
-        }
-        
     } catch (error) {
         console.error('Failed to initialize Supra SDK:', error);
-        showNotification('SDK initialization failed - transaction signing unavailable', 'error');
-        
-        const signBtn = document.getElementById('signTransaction');
-        if (signBtn) {
-            signBtn.disabled = true;
-            signBtn.innerHTML = '<div class="btn-icon">⚠️</div><div class="btn-text">SDK Not Available</div>';
-            signBtn.title = 'Supra SDK failed to load - use CLI command instead';
-        }
+        showNotification('Failed to initialize Supra SDK', 'error');
     }
 }
 
@@ -140,8 +119,8 @@ async function fetchEpochData() {
         
         if (data.data) {
             epochData.lastReconfigurationTime = parseInt(data.data.last_reconfiguration_time);
-            epochData.epochInterval = 7200;
-            epochData.buffer = 300;
+            epochData.epochInterval = 7200; // 7200 seconds = 2 hours
+            epochData.buffer = 300; // 5 minutes buffer
             const lastReconfigSecs = Math.floor(epochData.lastReconfigurationTime / 1000000);
             nextEpochTime = lastReconfigSecs + epochData.epochInterval;
             
@@ -169,6 +148,7 @@ async function fetchMaxTaskDuration() {
         }
     } catch (error) {
         console.error('Error fetching max task duration:', error);
+        // still need to make sure we kep fallback value
     }
 }
 
@@ -408,6 +388,7 @@ function useManualAddress() {
 
 async function autoScanWalletModules(walletAddress) {
     try {
+        // Get the module count from user input
         const moduleCountInput = document.getElementById('moduleCount');
         const moduleCount = moduleCountInput ? parseInt(moduleCountInput.value) || 20 : 20;
         
@@ -416,40 +397,61 @@ async function autoScanWalletModules(walletAddress) {
         let modules = [];
         let apiUsed = '';
         
+        // Try v3 API first (latest) - with count parameter
         try {
             const responseV3 = await fetch(`https://rpc-testnet.supra.com/rpc/v3/accounts/${walletAddress}/modules?count=${moduleCount}`);
             if (responseV3.ok) {
                 const dataV3 = await responseV3.json();
+                console.log('v3 API response:', dataV3);
                 modules = parseModulesFromResponse(dataV3, 'v3');
                 apiUsed = 'v3';
+                console.log(`Successfully fetched ${modules.length} modules from v3 API with count=${moduleCount}`);
+            } else {
+                console.log(`v3 API failed with status: ${responseV3.status}`);
             }
         } catch (error) {
             console.log('v3 API error:', error);
         }
         
+        // If v3 failed, try v2 API as fallback (v2 might not support count parameter)
         if (modules.length === 0) {
+            console.log('Trying v2 API as fallback...');
             try {
                 const responseV2 = await fetch(`https://rpc-testnet.supra.com/rpc/v2/accounts/${walletAddress}/modules`);
                 if (responseV2.ok) {
                     const dataV2 = await responseV2.json();
+                    console.log('v2 API response:', dataV2);
                     modules = parseModulesFromResponse(dataV2, 'v2');
                     apiUsed = 'v2';
+                    console.log(`Successfully fetched ${modules.length} modules from v2 API (fallback)`);
+                } else {
+                    console.log(`v2 API failed with status: ${responseV2.status}`);
                 }
             } catch (error) {
+                console.log('v2 API error:', error);
                 throw new Error('Both v2 and v3 APIs failed');
             }
         }
         
+        console.log(`Total modules fetched: ${modules.length}`);
         const validModules = modules.filter(module => {
-            return module.name && 
-                   module.name.trim() !== '' &&
-                   module.name !== 'Unknown' &&
-                   module.name !== 'cursor' &&
-                   module.name !== 'modules';
+            const isValid = module.name && 
+                           module.name.trim() !== '' &&
+                           module.name !== 'Unknown' &&
+                           module.name !== 'cursor' &&
+                           module.name !== 'modules';
+            
+            if (!isValid) {
+                console.log(`Filtering out invalid module:`, module);
+            }
+            return isValid;
         });
         
+        console.log(`After filtering: ${validModules.length} valid modules`);
+        console.log('Valid module names:', validModules.map(m => m.name));
+        
         if (validModules.length > 0) {
-            document.getElementById('autoScanStatus').innerHTML = `✅ Found ${validModules.length} modules using ${apiUsed} API!`;
+            document.getElementById('autoScanStatus').innerHTML = `✅ Found ${validModules.length} modules using ${apiUsed} API! (Requested: ${moduleCount})`;
             displayModules(validModules, walletAddress);
             enableStep(2);  
             try {
@@ -457,15 +459,18 @@ async function autoScanWalletModules(walletAddress) {
             } catch (error) {
                 console.log('Could not fetch automated tasks:', error);
             }
-            showNotification(`Found ${validModules.length} modules!`, 'success');
+            showNotification(`Found ${validModules.length} modules at the address! (Requested: ${moduleCount})`, 'success');
         } else {
-            throw new Error(`No modules found at address`);
+            throw new Error(`No modules found at address (Requested: ${moduleCount})`);
         }
         
     } catch (error) {
         console.error('Auto-scan error:', error);
         
-        document.getElementById('autoScanStatus').innerHTML = `⚠️ API scan failed - loading demo modules...`;
+        const moduleCountInput = document.getElementById('moduleCount');
+        const moduleCount = moduleCountInput ? parseInt(moduleCountInput.value) || 20 : 20;
+        
+        document.getElementById('autoScanStatus').innerHTML = `⚠️ API scan failed (requested ${moduleCount}) - loading demo modules...`;
         
         const demoModules = [
             { name: 'auto_incr', bytecode: 'Available' },
@@ -473,31 +478,87 @@ async function autoScanWalletModules(walletAddress) {
             { name: 'auto_topup', bytecode: 'Available' },
             { name: 'dice_roll', bytecode: 'Available' },
             { name: 'HelloWorld', bytecode: 'Available' },
-            { name: 'Counter', bytecode: 'Available' }
+            { name: 'SupraAI', bytecode: 'Available' },
+            { name: 'Counter', bytecode: 'Available' },
+            { name: 'auto_faucet', bytecode: 'Available' },
+            { name: 'SpinTheWheel', bytecode: 'Available' },
+            { name: 'auto_count', bytecode: 'Available' },
+            { name: 'TokenMinter', bytecode: 'Available' },
+            { name: 'NFTMarketplace', bytecode: 'Available' },
+            { name: 'DeFiProtocol', bytecode: 'Available' },
+            { name: 'GameLogic', bytecode: 'Available' },
+            { name: 'OracleFeeds', bytecode: 'Available' },
+            { name: 'AutoStaking', bytecode: 'Available' },
+            { name: 'PriceTracker', bytecode: 'Available' },
+            { name: 'YieldFarming', bytecode: 'Available' },
+            { name: 'LiquidityPool', bytecode: 'Available' },
+            { name: 'CrossChain', bytecode: 'Available' },
+            { name: 'AutoSwap', bytecode: 'Available' },
+            { name: 'LendingPool', bytecode: 'Available' },
+            { name: 'VotingDAO', bytecode: 'Available' },
+            { name: 'MultiSig', bytecode: 'Available' },
+            { name: 'TimeLock', bytecode: 'Available' },
+            { name: 'RewardPool', bytecode: 'Available' },
+            { name: 'LaunchPad', bytecode: 'Available' },
+            { name: 'AirdropManager', bytecode: 'Available' },
+            { name: 'VestingContract', bytecode: 'Available' },
+            { name: 'BridgeContract', bytecode: 'Available' },
+            { name: 'FlashLoan', bytecode: 'Available' },
+            { name: 'Insurance', bytecode: 'Available' },
+            { name: 'Derivatives', bytecode: 'Available' },
+            { name: 'Prediction', bytecode: 'Available' },
+            { name: 'Lottery', bytecode: 'Available' },
+            { name: 'Escrow', bytecode: 'Available' },
+            { name: 'Subscription', bytecode: 'Available' },
+            { name: 'Referral', bytecode: 'Available' },
+            { name: 'Analytics', bytecode: 'Available' },
+            { name: 'Monitoring', bytecode: 'Available' }
         ];
 
-        displayModules(demoModules, walletAddress);
+        const limitedDemoModules = demoModules.slice(0, Math.min(moduleCount, demoModules.length));        
+        displayModules(limitedDemoModules, walletAddress);
         enableStep(2);   
         try {
             await fetchAutomatedTasks(walletAddress);
         } catch (error) {
             console.log('Could not fetch automated tasks in demo mode:', error);
         }
-        showNotification(`Demo modules loaded`, 'info');
+        showNotification(`Demo modules loaded (showing ${limitedDemoModules.length} of ${demoModules.length} available)`, 'info');
     }
 }
 
 function parseModulesFromResponse(data, apiVersion) {
     let modules = [];
     
+    console.log(`Parsing ${apiVersion} API response. Data type:`, typeof data, 'Length:', Array.isArray(data) ? data.length : 'Not an array');
+    console.log('Raw data structure:', data);
+    
     if (Array.isArray(data)) {
-        modules = data.map((module, index) => parseModuleItem(module, index));
+        console.log(`Direct array found with ${data.length} items`);
+        modules = data.map((module, index) => {
+            const parsed = parseModuleItem(module, index);
+            console.log(`Module ${index + 1}: ${parsed.name}`, parsed);
+            return parsed;
+        });
     } else if (data && data.data && Array.isArray(data.data)) {
-        modules = data.data.map((module, index) => parseModuleItem(module, index));
+        console.log(`Data.data array found with ${data.data.length} items`);
+        modules = data.data.map((module, index) => {
+            const parsed = parseModuleItem(module, index);
+            console.log(`Module ${index + 1}: ${parsed.name}`, parsed);
+            return parsed;
+        });
     } else if (data && data.modules && Array.isArray(data.modules)) {
-        modules = data.modules.map((module, index) => parseModuleItem(module, index));
+        console.log(`Data.modules array found with ${data.modules.length} items`);
+        modules = data.modules.map((module, index) => {
+            const parsed = parseModuleItem(module, index);
+            console.log(`Module ${index + 1}: ${parsed.name}`, parsed);
+            return parsed;
+        });
+    } else {
+        console.log('Unexpected API response format:', data);
     }
     
+    console.log(`Total modules parsed: ${modules.length}`);
     return modules;
 }
 
@@ -544,24 +605,36 @@ async function fetchAutomatedTasks(walletAddress) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }   
         const data = await response.json();
-        
+        console.log('Automated tasks API response:', data);  
         let tasks = [];
         if (data && data.data && Array.isArray(data.data)) {
             tasks = data.data;
         } else if (data && Array.isArray(data)) {
             tasks = data;
+        } else if (data && data.automated_transactions && Array.isArray(data.automated_transactions)) {
+            tasks = data.automated_transactions;
+        } else if (data && data.transactions && Array.isArray(data.transactions)) {
+            tasks = data.transactions;
         }
-        
         document.getElementById('tasksLoading').style.display = 'none';
         if (tasks.length > 0) {
             displayAutomatedTasks(tasks);
+            showNotification(`Found ${tasks.length} automated tasks!`, 'success');
         } else {
             document.getElementById('noTasksState').style.display = 'block';
-        }    
-    } catch (error) {
+            showNotification('No automated tasks found for this address', 'info');
+        }    } catch (error) {
         console.error('Error fetching automated tasks:', error);
         document.getElementById('tasksLoading').style.display = 'none';
         document.getElementById('noTasksState').style.display = 'block';
+        document.getElementById('noTasksState').innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">⚠️</div>
+                <div class="empty-title">Failed to Load Tasks</div>
+                <div class="empty-desc">Could not fetch automated tasks. ${error.message}</div>
+            </div>
+        `;        
+        showNotification('Failed to load automated tasks', 'error');
     }
 }
 
@@ -581,12 +654,46 @@ function displayAutomatedTasks(tasks) {
                 functionId = functionParts[functionParts.length - 1];
             }
         }
+                const gasAmount = (task.header && task.header.max_gas_amount) || 'Unknown';
+         const gasUsed = (task.output && task.output.Move && task.output.Move.gas_used) || 'Unknown';
+                let createdDisplay = 'Unknown';
+        if (task.block_header && task.block_header.timestamp) {
+            try {
+                let timestamp;
+                if (task.block_header.timestamp.utc_date_time) {
+                    createdDisplay = new Date(task.block_header.timestamp.utc_date_time).toLocaleString();
+                } else if (task.block_header.timestamp.microseconds_since_unix_epoch) {
+                    timestamp = parseInt(task.block_header.timestamp.microseconds_since_unix_epoch) / 1000;
+                    createdDisplay = new Date(timestamp).toLocaleString();
+                }
+            } catch (e) {
+                createdDisplay = task.block_header.timestamp.utc_date_time || 'Unknown';
+            }
+        }
         
+        let expiryDisplay = 'Unknown';
+        if (task.header && task.header.expiration_timestamp) {
+            try {
+                if (task.header.expiration_timestamp.utc_date_time) {
+                    expiryDisplay = new Date(task.header.expiration_timestamp.utc_date_time).toLocaleString();
+                } else if (task.header.expiration_timestamp.microseconds_since_unix_epoch) {
+                    const timestamp = parseInt(task.header.expiration_timestamp.microseconds_since_unix_epoch) / 1000;
+                    expiryDisplay = new Date(timestamp).toLocaleString();
+                }
+            } catch (e) {
+                expiryDisplay = task.header.expiration_timestamp.utc_date_time || 'Unknown';
+            }
+        }
+
         let statusColor = '#9EABB5';
-        if (status.toLowerCase().includes('success')) {
+        if (status.toLowerCase().includes('active') || status.toLowerCase().includes('running')) {
             statusColor = '#00ff88';
-        } else if (status.toLowerCase().includes('failed')) {
+        } else if (status.toLowerCase().includes('completed') || status.toLowerCase().includes('success')) {
+            statusColor = '#00ff88';
+        } else if (status.toLowerCase().includes('failed') || status.toLowerCase().includes('error')) {
             statusColor = '#ff6b6b';
+        } else if (status.toLowerCase().includes('expired')) {
+            statusColor = '#ffaa00';
         }
         
         taskCard.innerHTML = `
@@ -600,7 +707,23 @@ function displayAutomatedTasks(tasks) {
             <div class="task-details">
                 <div class="task-detail">
                     <span class="detail-label">Function:</span>
-                    <span class="detail-value">${functionId}</span>
+                    <span class="detail-value" title="${task.payload && task.payload.Move && task.payload.Move.function}">${functionId}</span>
+                </div>
+                <div class="task-detail">
+                    <span class="detail-label">Max Gas:</span>
+                    <span class="detail-value">${gasAmount}</span>
+                </div>
+                <div class="task-detail">
+                    <span class="detail-label">Gas Used:</span>
+                    <span class="detail-value">${gasUsed}</span>
+                </div>
+                <div class="task-detail">
+                    <span class="detail-label">Created:</span>
+                    <span class="detail-value">${createdDisplay}</span>
+                </div>
+                <div class="task-detail">
+                    <span class="detail-label">Expires:</span>
+                    <span class="detail-value">${expiryDisplay}</span>
                 </div>
             </div>
         `;
@@ -615,8 +738,64 @@ async function selectModule(moduleName, baseAddress, event) {
     wizardState.selectedModule = moduleName;
     await fetchAutomatedTasks(baseAddress);
     enableStep(3);    
-    
+    document.getElementById('abiLoading').style.display = 'flex';
     try {
+        let response;
+        let data;        
+        try {
+            response = await fetch(`https://rpc-testnet.supra.com/rpc/v2/accounts/${baseAddress}/modules/${moduleName}`);
+            if (response.ok) {
+                data = await response.json();
+                console.log('Module ABI response:', data);
+            }
+        } catch (err) {
+            console.log('Standard endpoint failed, trying alternative...');
+        }        
+        if (!data || !response?.ok) {
+            console.log('Trying to get module from all modules list...');
+            response = await fetch(`https://rpc-testnet.supra.com/rpc/v2/accounts/${baseAddress}/modules`);
+            if (response.ok) {
+                const allModules = await response.json();
+                console.log('All modules for finding specific:', allModules);
+                
+                if (Array.isArray(allModules)) {
+                    data = allModules.find(module => {
+                        return module.name === moduleName || 
+                               (module.abi && module.abi.name === moduleName) ||
+                               (typeof module === 'object' && Object.keys(module).includes(moduleName));
+                    });
+                }
+            }
+        }
+
+        let moduleABI = null;        
+        if (data) {
+            if (data.abi) {
+                moduleABI = data.abi;
+            } else if (data.module && data.module.abi) {
+                moduleABI = data.module.abi;
+            } else if (data.exposed_functions) {
+                moduleABI = data;
+            } else if (typeof data === 'object') {
+                moduleABI = data;
+            }
+        }                
+        if (moduleABI) {
+            wizardState.moduleABI = moduleABI;
+            const entryFunctions = extractEntryFunctions(moduleABI);
+            if (entryFunctions.length > 0) {
+                displayFunctions(entryFunctions);
+                showNotification(`Found ${entryFunctions.length} entry functions!`, 'success');
+                return;  
+            } else {
+                console.log('No entry functions found, showing demo functions');
+            }
+        } else {
+            console.log('No ABI found, showing demo functions');
+        }
+        throw new Error('Could not load real functions from module');
+    } catch (error) {
+        console.error('ABI fetch error:', error);
         let demoFunctions = [];
         switch(moduleName.toLowerCase()) {
             case 'auto_incr':
@@ -624,28 +803,75 @@ async function selectModule(moduleName, baseAddress, event) {
             case 'counter':
                 demoFunctions = [
                     { name: 'auto_increment', params: ['&signer'], is_entry: true, generic_type_params: [] },
-                    { name: 'manual_increment', params: ['&signer'], is_entry: true, generic_type_params: [] }
+                    { name: 'manual_increment', params: ['&signer'], is_entry: true, generic_type_params: [] },
+                    { name: 'reset_counter', params: ['&signer'], is_entry: true, generic_type_params: [] }
                 ];
                 break;
             case 'auto_topup':
                 demoFunctions = [
-                    { name: 'auto_topup', params: ['&signer', 'address', 'u64', 'u64'], is_entry: true, generic_type_params: [] }
+                    { 
+                        name: 'auto_topup', 
+                        params: ['&signer', 'address', 'u64', 'u64'], 
+                        is_entry: true, 
+                        generic_type_params: [] 
+                    },
+                    { 
+                        name: 'auto_withdraw', 
+                        params: ['&signer', 'address', 'u64', 'u64'], 
+                        is_entry: true, 
+                        generic_type_params: [] 
+                    }
                 ];
                 break;
             case 'dice_roll':
                 demoFunctions = [
-                    { name: 'roll_dice', params: ['&signer', 'u256'], is_entry: true, generic_type_params: [] }
+                    { 
+                        name: 'roll_dice', 
+                        params: ['&signer', 'u256'], 
+                        is_entry: true, 
+                        generic_type_params: [] 
+                    }
                 ];
                 break;
             default:
                 demoFunctions = [
-                    { name: 'execute', params: ['&signer'], is_entry: true, generic_type_params: [] }
+                    { name: 'execute', params: ['&signer'], is_entry: true, generic_type_params: [] },
+                    { name: 'process', params: ['&signer', 'u64'], is_entry: true, generic_type_params: [] }
                 ];
         }
         displayFunctions(demoFunctions);
-        showNotification(`Loaded ${demoFunctions.length} functions for ${moduleName}`, 'info');
+        showNotification(`Loaded ${demoFunctions.length} demo functions for ${moduleName}`, 'info');
+    } finally {
+        document.getElementById('abiLoading').style.display = 'none';
+    }
+}
+
+// Only entry functions based on Nolans feedback
+function extractEntryFunctions(abi) {
+    try {
+        let functions = [];
+        if (abi.exposed_functions && Array.isArray(abi.exposed_functions)) {
+            functions = abi.exposed_functions;
+        } else if (Array.isArray(abi)) {
+            functions = abi;
+        } else if (abi.functions && Array.isArray(abi.functions)) {
+            functions = abi.functions;
+        }
+        
+        return functions
+            .filter(func => {
+                return func.is_entry === true;
+            })
+            .map(func => ({
+                name: func.name,
+                params: func.params || func.parameters || func.arguments || [],
+                visibility: func.visibility,
+                is_entry: func.is_entry,
+                generic_type_params: func.generic_type_params || []
+            }));
     } catch (error) {
-        console.error('Function loading error:', error);
+        console.error('ABI parsing error:', error);
+        return [];
     }
 }
 
@@ -656,10 +882,14 @@ function displayFunctions(functions) {
         const functionCard = document.createElement('div');
         functionCard.className = 'function-card';
         const nonSignerParams = func.params.filter(param => param !== '&signer');
+        const hasGenerics = func.generic_type_params && func.generic_type_params.length > 0;
         
         functionCard.innerHTML = `
             <div class="function-name">${func.name}</div>
-            <div class="function-desc">${nonSignerParams.length} parameters</div>
+            <div class="function-desc">
+                ${nonSignerParams.length} parameters
+                ${hasGenerics ? ' • Has generics' : ''}
+            </div>
         `;
         functionCard.addEventListener('click', (event) => selectFunction(func, event));
         functionsList.appendChild(functionCard);
@@ -672,6 +902,7 @@ function selectFunction(func, event) {
     
     wizardState.selectedFunction = func.name;
     wizardState.functionParams = func.params;
+    wizardState.hasGenerics = func.generic_type_params && func.generic_type_params.length > 0;
     
     generateParameterInputs(func.params, func.generic_type_params || []);
     updateAutomationParams();
@@ -682,7 +913,6 @@ function generateParameterInputs(params, genericParams = []) {
     const container = document.getElementById('functionParams');
     container.innerHTML = '';
     const nonSignerParams = params.filter(param => param !== '&signer');
-    
     nonSignerParams.forEach((paramType, index) => {
         const paramRow = document.createElement('div');
         paramRow.className = 'param-row';      
@@ -706,6 +936,27 @@ function generateParameterInputs(params, genericParams = []) {
         `;
         container.appendChild(paramRow);
     });
+    if (genericParams.length > 0) {
+        const typeArgsSection = document.createElement('div');
+        typeArgsSection.className = 'type-args-section';
+        typeArgsSection.innerHTML = `
+            <h5>Type Arguments (Generics)
+                <div class="hint-icon">?
+                    <div class="hint-tooltip">Specify the concrete types for generic parameters (e.g., 0x1::aptos_coin::AptosCoin)</div>
+                </div>
+            </h5>
+        `;  
+        genericParams.forEach((_, index) => {
+            const typeArgInput = document.createElement('input');
+            typeArgInput.type = 'text';
+            typeArgInput.className = 'type-arg-input';
+            typeArgInput.placeholder = `Type argument ${index + 1} (e.g., 0x1::coin::CoinType)`;
+            typeArgInput.dataset.typeArgIndex = index;
+            typeArgInput.required = true;
+            typeArgsSection.appendChild(typeArgInput);
+        });   
+        container.appendChild(typeArgsSection);
+    }
 }
 
 function getInputTypeForMoveType(moveType) {
@@ -730,6 +981,9 @@ function getPlaceholderForType(moveType) {
     if (moveType === 'bool') {
         return 'true/false';
     }
+    if (moveType.includes('vector')) {
+        return 'Enter comma-separated values';
+    }
     return `Enter ${moveType} value`;
 }
 
@@ -737,24 +991,37 @@ function getHintForType(moveType) {
     const hints = {
         'address': 'A 32-byte address starting with 0x (66 characters total)',
         'u8': 'Unsigned 8-bit integer (0 to 255)',
-        'u64': 'Unsigned 64-bit integer',
-        'u256': 'Unsigned 256-bit integer',
-        'bool': 'Boolean value: true or false'
+        'u16': 'Unsigned 16-bit integer (0 to 65,535)',
+        'u32': 'Unsigned 32-bit integer (0 to 4,294,967,295)',
+        'u64': 'Unsigned 64-bit integer (0 to 18,446,744,073,709,551,615)',
+        'u128': 'Unsigned 128-bit integer (very large positive number)',
+        'u256': 'Unsigned 256-bit integer (extremely large positive number)',
+        'bool': 'Boolean value: true or false',
+        'vector<u8>': 'Array of bytes, often used for strings'
     };
     return hints[moveType] || `Value of type ${moveType}`;
 }
 
 function validateParameter(value, type) {
-    if (!value && type !== 'bool') return { valid: false, error: 'Required field' };
+    if (!value && type !== 'bool') return { valid: false, error: 'This field is required' };
     if (type === 'address') {
         if (!value.startsWith('0x') || value.length !== 66) {
-            return { valid: false, error: 'Invalid address format' };
+            return { valid: false, error: 'Address must start with 0x and be 66 characters long' };
         }
     }
     if (type.includes('u')) {
         const num = parseInt(value);
         if (isNaN(num) || num < 0) {
-            return { valid: false, error: 'Must be positive number' };
+            return { valid: false, error: 'Must be a positive number' };
+        }
+        if (type === 'u8' && num > 255) {
+            return { valid: false, error: 'Value must be between 0 and 255' };
+        }
+        if (type === 'u16' && num > 65535) {
+            return { valid: false, error: 'Value must be between 0 and 65,535' };
+        }
+        if (type === 'u32' && num > 4294967295) {
+            return { valid: false, error: 'Value must be between 0 and 4,294,967,295' };
         }
     }
     return { valid: true };
@@ -764,11 +1031,13 @@ function updateAutomationParams() {
     const currentTime = Math.floor(Date.now() / 1000);
     const maxExpiryTime = currentTime + maxTaskDuration;
     const calculatedExpiryTime = calculateExpiryTime();
+    const expiryTime = calculatedExpiryTime ? Math.min(calculatedExpiryTime, maxExpiryTime) : maxExpiryTime;
     document.getElementById('expiryTimeAuto').value = expiryTime;
+    document.getElementById('expiryTimeAuto').max = maxExpiryTime;
     const automationFee = document.getElementById('feeCapValue').textContent;
     document.getElementById('automationFeeAuto').value = automationFee || 'Calculating...';
     generateDeploymentSummary();
-    enableStep(5);
+    enableStep(5); 
 }
 
 function generateDeploymentSummary() {
@@ -786,9 +1055,22 @@ function generateDeploymentSummary() {
             <div class="summary-label">Function</div>
             <div class="summary-value">${wizardState.selectedFunction}</div>
         </div>
+        <div class="summary-item">
+            <div class="summary-label">Max Gas</div>
+            <div class="summary-value">${document.getElementById('maxGasAmount').value}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Gas Price Cap</div>
+            <div class="summary-value">${document.getElementById('gasPriceCap').value}</div>
+        </div>
+        <div class="summary-item">
+            <div class="summary-label">Expiry Time</div>
+            <div class="summary-value">${document.getElementById('expiryTimeAuto').value}</div>
+        </div>
     `;
 }
 
+// Convert Move parameter to BCS serialized format
 function convertParameterToBCS(value, type) {
     if (!window.BCS) {
         throw new Error('BCS module not loaded');
@@ -799,46 +1081,57 @@ function convertParameterToBCS(value, type) {
             return new window.HexString(value).toUint8Array();
         } else if (type.includes('u8')) {
             return window.BCS.bcsSerializeUint8(parseInt(value));
+        } else if (type.includes('u16')) {
+            return window.BCS.bcsSerializeUint16(parseInt(value));
+        } else if (type.includes('u32')) {
+            return window.BCS.bcsSerializeUint32(parseInt(value));
         } else if (type.includes('u64')) {
             return window.BCS.bcsSerializeUint64(BigInt(value));
+        } else if (type.includes('u128')) {
+            return window.BCS.bcsSerializeUint128(BigInt(value));
         } else if (type.includes('u256')) {
             return window.BCS.bcsSerializeUint256(BigInt(value));
         } else if (type === 'bool') {
             return window.BCS.bcsSerializeBool(value === 'true');
+        } else if (type.includes('vector<u8>')) {
+            // Handle string as vector<u8>
+            return window.BCS.bcsSerializeStr(value);
         } else {
+            // For other types, try to serialize as string
             return window.BCS.bcsSerializeStr(value);
         }
     } catch (error) {
+        console.error(`Error converting parameter ${value} of type ${type}:`, error);
         throw error;
     }
 }
 
+// Get account sequence number
 async function getAccountSequenceNumber(address) {
     try {
         const response = await fetch(`https://rpc-testnet.supra.com/rpc/v2/accounts/${address}`);
         const data = await response.json();
         if (data && data.sequence_number !== undefined) {
             return BigInt(data.sequence_number);
+        } else {
+            throw new Error('Could not fetch sequence number');
         }
-        return BigInt(0);
     } catch (error) {
         console.error('Error fetching sequence number:', error);
-        return BigInt(0);
+        return BigInt(0); // Fallback to 0
     }
 }
 
+// Sign and submit automation transaction
 async function signAutomationTransaction() {
     const signBtn = document.getElementById('signTransaction');
     const transactionStatus = document.getElementById('transactionStatus');
     
     try {
-        if (!supraSdkClient || !window.BCS || !window.HexString) {
-            throw new Error('Supra SDK not loaded. Please refresh page.');
-        }
-        
         signBtn.disabled = true;
-        signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Creating...</div>';
+        signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Creating Transaction...</div>';
         
+        // Validate all parameters first
         const paramInputs = document.querySelectorAll('#functionParams .param-input');
         let allValid = true;
         const functionArgs = [];
@@ -847,111 +1140,194 @@ async function signAutomationTransaction() {
         paramInputs.forEach(input => {
             const value = input.value.trim();
             const type = input.getAttribute('data-param-type');
+            input.classList.remove('invalid');
+            const existingError = input.parentNode.querySelector('.param-error');
+            if (existingError) existingError.remove();
+            
             const validation = validateParameter(value, type);
             if (!validation.valid) {
                 allValid = false;
+                input.classList.add('invalid');
+                const errorSpan = document.createElement('span');
+                errorSpan.className = 'param-error';
+                errorSpan.textContent = validation.error;
+                input.parentNode.appendChild(errorSpan);
             } else if (value) {
                 functionArgs.push(value);
                 functionTypes.push(type);
             }
         });
         
+        // Validate type arguments
+        const typeArgInputs = document.querySelectorAll('.type-arg-input');
+        const typeArgs = [];
+        typeArgInputs.forEach(input => {
+            const value = input.value.trim();
+            if (!value) {
+                allValid = false;
+                input.classList.add('invalid');
+            } else {
+                typeArgs.push(value);
+                input.classList.remove('invalid');
+            }
+        });
+        
         if (!allValid) {
-            throw new Error('Fix validation errors first');
+            throw new Error('Please fix validation errors before signing transaction');
         }
         
+        // Check if wallet is connected
         if (!wizardState.walletProvider) {
-            throw new Error('Wallet not connected');
+            throw new Error('Wallet not connected. Please connect your StarKey wallet first.');
         }
         
+        showNotification('Creating automation transaction...', 'info');
+        
+        // Get current chain ID
         const chainIdResponse = await wizardState.walletProvider.getChainId();
-        if (!chainIdResponse) {
-            throw new Error('Could not get chain ID');
+        if (!chainIdResponse || !chainIdResponse.chainId) {
+            throw new Error('Could not get chain ID from wallet');
         }
         
+        signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Preparing Parameters...</div>';
+        
+        // Convert function arguments to BCS format
         const bcsArgs = [];
         for (let i = 0; i < functionArgs.length; i++) {
-            const bcsArg = convertParameterToBCS(functionArgs[i], functionTypes[i]);
-            bcsArgs.push(bcsArg);
+            try {
+                const bcsArg = convertParameterToBCS(functionArgs[i], functionTypes[i]);
+                bcsArgs.push(bcsArg);
+            } catch (error) {
+                throw new Error(`Failed to convert parameter ${i + 1}: ${error.message}`);
+            }
         }
         
+        signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Getting Sequence Number...</div>';
+        
+        // Get account sequence number
         const senderSequenceNumber = await getAccountSequenceNumber(wizardState.walletAddress);
         
+        signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Creating Raw Transaction...</div>';
+        
+        // Prepare automation parameters
         const automationMaxGasAmount = BigInt(document.getElementById('maxGasAmount').value);
         const automationGasPriceCap = BigInt(document.getElementById('gasPriceCap').value);
         const automationFeeCap = BigInt(document.getElementById('automationFeeAuto').value.replace(/,/g, ''));
         const automationExpiryTime = BigInt(document.getElementById('expiryTimeAuto').value);
+        const automationAuxData = []; // Empty for now as per docs
         
+        // Create type arguments array
+        const functionTypeArgs = typeArgs.map(typeArg => {
+            // Convert string type arguments to TypeTag format
+            // This is a simplified conversion - in production you'd want more robust parsing
+            return typeArg;
+        });
+        
+        // Create serialized automation transaction
         const serializedTx = supraSdkClient.createSerializedAutomationRegistrationTxPayloadRawTxObject(
             new window.HexString(wizardState.walletAddress),
             senderSequenceNumber,
-            wizardState.walletAddress,
-            wizardState.selectedModule,
-            wizardState.selectedFunction,
-            [],
-            bcsArgs,
-            automationMaxGasAmount,
-            automationGasPriceCap,
-            automationFeeCap,
-            automationExpiryTime,
-            []
+            wizardState.walletAddress, // Module address (same as sender for user modules)
+            wizardState.selectedModule, // Module name
+            wizardState.selectedFunction, // Function name
+            functionTypeArgs, // Type arguments
+            bcsArgs, // Function arguments
+            automationMaxGasAmount, // Max gas amount for automated transaction
+            automationGasPriceCap, // Gas price cap
+            automationFeeCap, // Automation fee cap
+            automationExpiryTime, // Expiry timestamp
+            automationAuxData // Aux data (reserved for future use)
         );
         
-        const txHex = window.Buffer.from(serializedTx).toString('hex');
+        signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Signing Transaction...</div>';
         
+        // Convert serialized transaction to hex
+        const txHex = Buffer.from(serializedTx).toString('hex');
+        
+        // Prepare transaction parameters for StarKey wallet
         const txParams = {
             data: txHex,
             from: wizardState.walletAddress,
             chainId: chainIdResponse.chainId,
-            options: { waitForTransaction: true }
+            options: {
+                waitForTransaction: true
+            }
         };
         
-        showNotification('Confirm in wallet...', 'info');
+        showNotification('Please confirm the transaction in your StarKey wallet...', 'info');
         
+        // Send transaction through StarKey wallet
         const txHash = await wizardState.walletProvider.sendTransaction(txParams);
         
-        const txResult = await wizardState.walletProvider.waitForTransactionWithResult({ hash: txHash });
+        signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Waiting for Confirmation...</div>';
         
+        showNotification('Transaction submitted! Waiting for confirmation...', 'success');
+        
+        // Wait for transaction result
+        const txResult = await wizardState.walletProvider.waitForTransactionWithResult({
+            hash: txHash
+        });
+        
+        // Display transaction status
         transactionStatus.style.display = 'block';
         
         if (txResult && txResult.status === 'Success') {
             transactionStatus.className = 'transaction-status success';
             transactionStatus.innerHTML = `
-                <div style="background: rgba(0, 255, 136, 0.1); padding: 1.5rem; border-radius: 12px;">
-                    <div style="color: #00ff88; font-weight: 700; margin-bottom: 1rem;">✅ Transaction Successful!</div>
-                    <div style="font-family: monospace; background: rgba(0, 255, 136, 0.1); padding: 1rem; border-radius: 8px; word-break: break-all; font-size: 0.85rem;">
-                        ${txHash}
+                <div style="background: rgba(0, 255, 136, 0.1); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(0, 255, 136, 0.3);">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="font-size: 2rem;">✅</div>
+                        <div>
+                            <div style="color: #00ff88; font-weight: 700; font-size: 1.1rem;">Automation Transaction Successful!</div>
+                            <div style="color: #9EABB5; font-size: 0.9rem;">Your automation task has been registered</div>
+                        </div>
                     </div>
-                    <button onclick="refreshAutomatedTasks()" style="background: #DD1438; border: none; color: white; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; margin-top: 1rem;">Refresh Tasks</button>
+                    <div style="font-family: 'JetBrains Mono', monospace; background: rgba(0, 255, 136, 0.1); padding: 1rem; border-radius: 8px; word-break: break-all; font-size: 0.85rem;">
+                        <strong>Transaction Hash:</strong><br>${txHash}
+                    </div>
+                    <div style="margin-top: 1rem; display: flex; gap: 1rem;">
+                        <button onclick="copyToClipboard('transactionStatus', this)" style="background: linear-gradient(135deg, #00ff88, #00cc6a); border: none; color: white; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">Copy Hash</button>
+                        <button onclick="refreshAutomatedTasks()" style="background: linear-gradient(135deg, #DD1438, #c41030); border: none; color: white; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">Refresh Tasks</button>
+                    </div>
                 </div>
             `;
-            showNotification('Success!', 'success');
+            showNotification('Automation transaction successful! 🎉', 'success');
         } else {
-            throw new Error(`Transaction failed: ${txResult?.vmStatus || 'Unknown'}`);
+            throw new Error(`Transaction failed: ${txResult?.vmStatus || 'Unknown error'}`);
         }
         
     } catch (error) {
+        console.error('Transaction signing error:', error);
+        
         transactionStatus.style.display = 'block';
         transactionStatus.className = 'transaction-status error';
         transactionStatus.innerHTML = `
-            <div style="background: rgba(255, 107, 107, 0.1); padding: 1.5rem; border-radius: 12px;">
-                <div style="color: #ff6b6b; font-weight: 700; margin-bottom: 1rem;">❌ Transaction Failed</div>
-                <div style="color: #ff6b6b; font-size: 0.9rem;">${error.message}</div>
-                <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(221, 20, 56, 0.1); border-radius: 6px; font-size: 0.8rem;">
-                    💡 Try the CLI command instead
+            <div style="background: rgba(255, 107, 107, 0.1); padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255, 107, 107, 0.3);">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <div style="font-size: 2rem;">❌</div>
+                    <div>
+                        <div style="color: #ff6b6b; font-weight: 700; font-size: 1.1rem;">Transaction Failed</div>
+                        <div style="color: #9EABB5; font-size: 0.9rem;">Please try again or check the parameters</div>
+                    </div>
+                </div>
+                <div style="background: rgba(255, 107, 107, 0.1); padding: 1rem; border-radius: 8px; color: #ff6b6b; font-size: 0.9rem;">
+                    ${error.message}
                 </div>
             </div>
         `;
-        showNotification(`Failed: ${error.message}`, 'error');
+        
+        showNotification(`Transaction failed: ${error.message}`, 'error');
     } finally {
         signBtn.disabled = false;
         signBtn.innerHTML = '<div class="btn-icon">✍️</div><div class="btn-text">Sign & Submit Transaction</div>';
     }
 }
 
+// Refresh automated tasks after successful transaction
 function refreshAutomatedTasks() {
     if (wizardState.walletAddress) {
         fetchAutomatedTasks(wizardState.walletAddress);
+        showNotification('Refreshing automated tasks...', 'info');
     }
 }
 
@@ -959,48 +1335,65 @@ function generateCommand() {
     const deployStatus = document.getElementById('deployStatus');
     const generateBtn = document.getElementById('generateCommand');
     const paramInputs = document.querySelectorAll('#functionParams .param-input');
-    
     let allValid = true;
     const functionArgs = [];
-    
     paramInputs.forEach(input => {
         const value = input.value.trim();
         const type = input.getAttribute('data-param-type');
+        input.classList.remove('invalid');
+        const existingError = input.parentNode.querySelector('.param-error');
+        if (existingError) existingError.remove();
         const validation = validateParameter(value, type);
         if (!validation.valid) {
             allValid = false;
+            input.classList.add('invalid');
+            const errorSpan = document.createElement('span');
+            errorSpan.className = 'param-error';
+            errorSpan.textContent = validation.error;
+            input.parentNode.appendChild(errorSpan);
         } else if (value) {
             functionArgs.push(value);
         }
     });
-    
+    const typeArgInputs = document.querySelectorAll('.type-arg-input');
+    const typeArgs = [];
+    typeArgInputs.forEach(input => {
+        const value = input.value.trim();
+        if (!value) {
+            allValid = false;
+            input.classList.add('invalid');
+        } else {
+            typeArgs.push(value);
+            input.classList.remove('invalid');
+        }
+    });    
     if (!allValid) {
-        showNotification('Fix validation errors first', 'error');
+        showNotification('Please fix validation errors before generating CLI command', 'error');
         return;
     }
-    
     generateBtn.disabled = true;
     generateBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Generating...</div>';
     
     const functionId = `${wizardState.walletAddress}::${wizardState.selectedModule}::${wizardState.selectedFunction}`;
     
-    let cliCommand = `supra move automation register --task-max-gas-amount ${document.getElementById('maxGasAmount').value} --task-gas-price-cap ${document.getElementById('gasPriceCap').value} --task-expiry-time-secs ${document.getElementById('expiryTimeAuto').value} --task-automation-fee-cap ${document.getElementById('automationFeeAuto').value} --function-id "${functionId}"`;
-    
+    let cliCommand = `supra move automation register --task-max-gas-amount ${document.getElementById('maxGasAmount').value} --task-gas-price-cap ${document.getElementById('gasPriceCap').value} --task-expiry-time-secs ${document.getElementById('expiryTimeAuto').value} --task-automation-fee-cap ${document.getElementById('automationFeeAuto').value} --function-id "${functionId}" `;
+    if (typeArgs.length > 0) {
+        cliCommand += ` --type-args ${typeArgs.join(' ')} `;
+    }
     if (functionArgs.length > 0) {
-        cliCommand += ` --args ${functionArgs.join(' ')}`;
+        cliCommand += ` --args ${functionArgs.join(' ')} `;
     }
     cliCommand += ` --rpc-url https://rpc-testnet.supra.com`;
-    
     setTimeout(() => {
         deployStatus.style.display = 'block';
         deployStatus.className = 'deploy-status success';
         deployStatus.innerHTML = `
-            <div style="background: rgba(53, 63, 74, 0.4); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.85rem; white-space: pre-wrap;">${cliCommand}</div>
-            <button onclick="copyToClipboard('deployStatus', this)" style="background: #DD1438; border: none; color: white; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; margin-top: 1rem;">COPY</button>
+            <div style="background: rgba(53, 63, 74, 0.4); padding: 1rem; border-radius: 8px; margin: 1rem 0; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; white-space: pre-wrap; max-height: 200px; overflow-y: auto;">${cliCommand}</div>
+            <button onclick="copyToClipboard('deployStatus', this)" style="background: linear-gradient(135deg, #DD1438, #c41030); border: none; color: white; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">COPY</button>
         `;      
         generateBtn.disabled = false;
         generateBtn.innerHTML = '<div class="btn-icon">📋</div><div class="btn-text">Generate CLI Command</div>';    
-        showNotification('CLI command generated!', 'success');
+        showNotification('CLI command generated successfully!', 'success');
     }, 1500);
 }
 
@@ -1060,13 +1453,14 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('useManualAddress').addEventListener('click', useManualAddress);
     document.getElementById('generateCommand').addEventListener('click', generateCommand);
     document.getElementById('signTransaction').addEventListener('click', signAutomationTransaction);
-    document.getElementById('maxGasAmount').addEventListener('change', updateDisplay);
+    document.getElementById('maxGasAmount').addEventListener('change', function() {
+        updateDisplay();
+    });
     document.getElementById('refreshTasks').addEventListener('click', function() {
         if (wizardState.walletAddress) {
             fetchAutomatedTasks(wizardState.walletAddress);
         }
-    });
-    
+    });    
     const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
             if (mutation.target.id === 'expiryTimeValue' || mutation.target.id === 'feeCapValue') {
