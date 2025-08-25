@@ -2,8 +2,8 @@ let updateInterval;
 let countdownInterval;
 let epochData = {};
 let nextEpochTime = null;
-let maxTaskDuration = 7 * 24 * 60 * 60; // 7 days in seconds - fallback as suggested by Nolan
-let supraSdkClient = null; // Supra SDK client instance
+let maxTaskDuration = 7 * 24 * 60 * 60;
+let supraSdkClient = null;
 let wizardState = {
     walletConnected: false,
     walletAddress: '',
@@ -13,11 +13,18 @@ let wizardState = {
     functionParams: [],
     hasGenerics: false,
     typeArgs: [],
-    walletProvider: null // StarKey wallet provider
+    walletProvider: null
 };
 
 function init() {
-    console.log('Initializing Supra Automation Assist...');
+    console.log('🚀 Initializing Supra Automation Assist...');
+    console.log('Environment:', {
+        hostname: window.location.hostname,
+        protocol: window.location.protocol,
+        isProduction: window.location.hostname.includes('vercel') || window.location.hostname.includes('.app'),
+        timestamp: new Date().toISOString()
+    });
+    
     initializeSupraSDK();
     createFloatingLetters();
     createParticleSystem();
@@ -29,17 +36,51 @@ function init() {
 
 async function initializeSupraSDK() {
     try {
-        // Wait for SDK to be loaded
-        while (!window.SupraClient) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+        // Check for SDK loading error first
+        if (window.supraSDKError) {
+            throw new Error('SDK failed to load from CDN');
+        }
+        
+        // Wait for SDK to be loaded with timeout
+        let attempts = 0;
+        console.log('⏳ Waiting for Supra SDK to load...');
+        while (!window.SupraClient && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            attempts++;
+        }
+        
+        if (!window.SupraClient) {
+            throw new Error('Supra SDK not available after waiting');
         }
         
         // Initialize Supra SDK client
         supraSdkClient = new window.SupraClient('https://rpc-testnet.supra.com');
-        console.log('Supra SDK initialized successfully');
+        console.log('✅ Supra SDK initialized successfully');
+        
+        // Test SDK functionality
+        const testResponse = await fetch('https://rpc-testnet.supra.com/rpc/v2/accounts/0x1');
+        if (!testResponse.ok) {
+            throw new Error('RPC endpoint not accessible');
+        }
+        console.log('✅ RPC endpoint verified');
+        
+        // Verify BCS and HexString are available
+        if (!window.BCS || !window.HexString) {
+            throw new Error('BCS or HexString not available');
+        }
+        console.log('✅ BCS and HexString modules verified');
+        
     } catch (error) {
-        console.error('Failed to initialize Supra SDK:', error);
-        showNotification('Failed to initialize Supra SDK', 'error');
+        console.error('❌ Failed to initialize Supra SDK:', error);
+        showNotification('SDK initialization failed - transaction signing unavailable', 'error');
+        
+        // Disable the sign transaction button
+        const signBtn = document.getElementById('signTransaction');
+        if (signBtn) {
+            signBtn.disabled = true;
+            signBtn.innerHTML = '<div class="btn-icon">⚠️</div><div class="btn-text">SDK Not Available</div>';
+            signBtn.title = 'Supra SDK failed to load - use CLI command instead';
+        }
     }
 }
 
@@ -119,8 +160,8 @@ async function fetchEpochData() {
         
         if (data.data) {
             epochData.lastReconfigurationTime = parseInt(data.data.last_reconfiguration_time);
-            epochData.epochInterval = 7200; // 7200 seconds = 2 hours
-            epochData.buffer = 300; // 5 minutes buffer
+            epochData.epochInterval = 7200;
+            epochData.buffer = 300;
             const lastReconfigSecs = Math.floor(epochData.lastReconfigurationTime / 1000000);
             nextEpochTime = lastReconfigSecs + epochData.epochInterval;
             
@@ -148,7 +189,6 @@ async function fetchMaxTaskDuration() {
         }
     } catch (error) {
         console.error('Error fetching max task duration:', error);
-        // still need to make sure we kep fallback value
     }
 }
 
@@ -298,6 +338,24 @@ async function connectStarkeyWallet() {
         
         if (accounts && accounts.length > 0) {
             const address = accounts[0];
+            
+            // 🔍 ADDED: Verify account exists on network in production
+            console.log('🔍 Verifying account exists on network...', address);
+            try {
+                const accountCheck = await fetch(`https://rpc-testnet.supra.com/rpc/v2/accounts/${address}`);
+                const accountData = await accountCheck.json();
+                console.log('Account verification response:', accountData);
+                
+                if (!accountData || accountData.error) {
+                    throw new Error(`Account ${address} does not exist on Supra testnet. Please ensure your wallet is connected to the correct network.`);
+                }
+                console.log('✅ Account verified on network');
+            } catch (accountError) {
+                console.error('❌ Account verification failed:', accountError);
+                showNotification(`Account verification failed: ${accountError.message}`, 'error');
+                throw accountError;
+            }
+            
             wizardState.walletConnected = true;
             wizardState.walletAddress = address;
             wizardState.walletProvider = provider;
@@ -335,6 +393,7 @@ async function connectStarkeyWallet() {
             showNotification(`Connection failed: ${error.message}`, 'error');
         }
         
+        // Demo mode fallback
         setTimeout(() => {
             wizardState.walletConnected = true;
             wizardState.walletAddress = '0x1c5acf62be507c27a7788a661b546224d806246765ff2695efece60194c6df05';
@@ -388,7 +447,6 @@ function useManualAddress() {
 
 async function autoScanWalletModules(walletAddress) {
     try {
-        // Get the module count from user input
         const moduleCountInput = document.getElementById('moduleCount');
         const moduleCount = moduleCountInput ? parseInt(moduleCountInput.value) || 20 : 20;
         
@@ -397,7 +455,6 @@ async function autoScanWalletModules(walletAddress) {
         let modules = [];
         let apiUsed = '';
         
-        // Try v3 API first (latest) - with count parameter
         try {
             const responseV3 = await fetch(`https://rpc-testnet.supra.com/rpc/v3/accounts/${walletAddress}/modules?count=${moduleCount}`);
             if (responseV3.ok) {
@@ -413,7 +470,6 @@ async function autoScanWalletModules(walletAddress) {
             console.log('v3 API error:', error);
         }
         
-        // If v3 failed, try v2 API as fallback (v2 might not support count parameter)
         if (modules.length === 0) {
             console.log('Trying v2 API as fallback...');
             try {
@@ -623,7 +679,8 @@ async function fetchAutomatedTasks(walletAddress) {
         } else {
             document.getElementById('noTasksState').style.display = 'block';
             showNotification('No automated tasks found for this address', 'info');
-        }    } catch (error) {
+        }    
+    } catch (error) {
         console.error('Error fetching automated tasks:', error);
         document.getElementById('tasksLoading').style.display = 'none';
         document.getElementById('noTasksState').style.display = 'block';
