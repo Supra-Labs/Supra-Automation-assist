@@ -7,33 +7,12 @@
     <link rel="stylesheet" href="css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" href="assets/logo.png" type="image/png">
-    <!-- Supra SDK via CDN (more reliable for production) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/buffer/6.0.3/buffer.min.js"></script>
-    <script>
-        // Make Buffer available globally for production environments
-        window.Buffer = window.Buffer || buffer.Buffer;
-    </script>
+    <!-- Supra SDK -->
     <script type="module">
-        // Try multiple CDN sources for better reliability
-        try {
-            const { SupraClient, HexString, BCS } = await import('https://esm.sh/supra-l1-sdk@latest');
-            window.SupraClient = SupraClient;
-            window.HexString = HexString;
-            window.BCS = BCS;
-            console.log('Supra SDK loaded from esm.sh');
-        } catch (error) {
-            console.warn('Primary CDN failed, trying alternative...', error);
-            try {
-                const { SupraClient, HexString, BCS } = await import('https://cdn.skypack.dev/supra-l1-sdk@latest');
-                window.SupraClient = SupraClient;
-                window.HexString = HexString;
-                window.BCS = BCS;
-                console.log('Supra SDK loaded from skypack');
-            } catch (error2) {
-                console.error('All CDN sources failed:', error2);
-                window.supraSDKError = true;
-            }
-        }
+        import { SupraClient, HexString, BCS } from 'https://esm.sh/supra-l1-sdk@latest';
+        window.SupraClient = SupraClient;
+        window.HexString = HexString;
+        window.BCS = BCS;
     </script>
 </head>
 <body>
@@ -259,7 +238,7 @@
                     <div class="step-header">
                         <div class="step-number">5</div>
                         <div class="step-info">
-                            <div class="step-title">Generate CLI Command or Submit Automation Directly via Starkey</div>
+                            <div class="step-title">Generate CLI Command or Sign Transaction</div>
                             <div class="step-desc">Get your ready-to-use automation deployment command or sign directly with wallet</div>
                         </div>
                     </div>
@@ -276,7 +255,7 @@
                             </button>
                             <button class="deploy-btn" id="signTransaction" style="background: linear-gradient(135deg, #00ff88, #00cc6a); margin-left: 1rem;">
                                 <div class="btn-icon">✍️</div>
-                                <div class="btn-text">Sign & Register Automation Task</div>
+                                <div class="btn-text">Sign & Submit Transaction</div>
                             </button>
                         </div>
                         <div class="deploy-status" id="deployStatus" style="display: none;">
