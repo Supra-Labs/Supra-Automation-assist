@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" href="assets/logo.png" type="image/png">
-    <!-- Supra SDK -->
     <script type="module">
         import { SupraClient, HexString, BCS } from 'https://esm.sh/supra-l1-sdk@latest';
         window.SupraClient = SupraClient;
@@ -23,7 +22,7 @@
     
     <div class="container">
         <div class="header">
-            <h1 class="logo">Real-time Supra Automation Parameters for faster Deployment</h1>
+            <h1 class="logo">Supra AutoFi Assist for faster Deployment</h1>
         </div>
         <div class="stats-row">
             <div class="stat-card">
@@ -83,7 +82,7 @@
         </div>
         <div class="automation-section">
             <h3 class="automation-title">🤖 Automation Registry CLI Command Generator & Transaction Signer</h3>
-            <p class="automation-subtitle">Connect wallet → Select module → Select function → Configure parameters → Sign & Submit Transaction</p>
+            <p class="automation-subtitle">Connect wallet → Select module → Select function → Configure parameters → Register an Automation Task</p>
             
             <div class="wizard-container">
                 <div class="wizard-step" id="step-1">
@@ -253,9 +252,9 @@
                                 <div class="btn-icon">📋</div>
                                 <div class="btn-text">Generate CLI Command</div>
                             </button>
-                            <button class="deploy-btn" id="signTransaction" style="background: linear-gradient(135deg, #00ff88, #00cc6a); margin-left: 1rem;">
-                                <div class="btn-icon">✍️</div>
-                                <div class="btn-text">Sign & Register Automation Task</div>
+                            <button class="deploy-btn" id="signTransaction">
+                                <div class="btn-icon">🦾</div>
+                                <div class="btn-text">Register Automation Task from Starkey</div>
                             </button>
                         </div>
                         <div class="deploy-status" id="deployStatus" style="display: none;">

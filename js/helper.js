@@ -36,35 +36,25 @@ function init() {
 
 async function initializeSupraSDK() {
     try {
-        // Check for SDK loading error first
         if (window.supraSDKError) {
             throw new Error('SDK failed to load from CDN');
         }
-        
-        // Wait for SDK to be loaded with timeout
         let attempts = 0;
         console.log('⏳ Waiting for Supra SDK to load...');
         while (!window.SupraClient && attempts < 50) {
             await new Promise(resolve => setTimeout(resolve, 200));
             attempts++;
-        }
-        
+        }        
         if (!window.SupraClient) {
             throw new Error('Supra SDK not available after waiting');
-        }
-        
-        // Initialize Supra SDK client
+        }        
         supraSdkClient = new window.SupraClient('https://rpc-testnet.supra.com');
         console.log('✅ Supra SDK initialized successfully');
-        
-        // Test SDK functionality
         const testResponse = await fetch('https://rpc-testnet.supra.com/rpc/v2/accounts/0x1');
         if (!testResponse.ok) {
             throw new Error('RPC endpoint not accessible');
         }
         console.log('✅ RPC endpoint verified');
-        
-        // Verify BCS and HexString are available
         if (!window.BCS || !window.HexString) {
             throw new Error('BCS or HexString not available');
         }
@@ -73,8 +63,6 @@ async function initializeSupraSDK() {
     } catch (error) {
         console.error('❌ Failed to initialize Supra SDK:', error);
         showNotification('SDK initialization failed - transaction signing unavailable', 'error');
-        
-        // Disable the sign transaction button
         const signBtn = document.getElementById('signTransaction');
         if (signBtn) {
             signBtn.disabled = true;
@@ -338,8 +326,6 @@ async function connectStarkeyWallet() {
         
         if (accounts && accounts.length > 0) {
             const address = accounts[0];
-            
-            // 🔍 ADDED: Verify account exists on network in production
             console.log('🔍 Verifying account exists on network...', address);
             try {
                 const accountCheck = await fetch(`https://rpc-testnet.supra.com/rpc/v2/accounts/${address}`);
@@ -393,7 +379,7 @@ async function connectStarkeyWallet() {
             showNotification(`Connection failed: ${error.message}`, 'error');
         }
         
-        // Demo mode fallback
+        // Demo mode fallback incase it wont work in some browser
         setTimeout(() => {
             wizardState.walletConnected = true;
             wizardState.walletAddress = '0x1c5acf62be507c27a7788a661b546224d806246765ff2695efece60194c6df05';
@@ -1127,7 +1113,7 @@ function generateDeploymentSummary() {
     `;
 }
 
-// Convert Move parameter to BCS serialized format
+// Convert Move parameter to BCS serialized format for the sdk requirements, u can check sdk docs for details
 function convertParameterToBCS(value, type) {
     if (!window.BCS) {
         throw new Error('BCS module not loaded');
@@ -1151,10 +1137,9 @@ function convertParameterToBCS(value, type) {
         } else if (type === 'bool') {
             return window.BCS.bcsSerializeBool(value === 'true');
         } else if (type.includes('vector<u8>')) {
-            // Handle string as vector<u8>
+
             return window.BCS.bcsSerializeStr(value);
         } else {
-            // For other types, try to serialize as string
             return window.BCS.bcsSerializeStr(value);
         }
     } catch (error) {
@@ -1163,7 +1148,6 @@ function convertParameterToBCS(value, type) {
     }
 }
 
-// Get account sequence number
 async function getAccountSequenceNumber(address) {
     try {
         const response = await fetch(`https://rpc-testnet.supra.com/rpc/v2/accounts/${address}`);
@@ -1179,7 +1163,7 @@ async function getAccountSequenceNumber(address) {
     }
 }
 
-// Sign and submit automation transaction
+// Sign and submit automation transaction FINALLY Yayyy!
 async function signAutomationTransaction() {
     const signBtn = document.getElementById('signTransaction');
     const transactionStatus = document.getElementById('transactionStatus');
@@ -1187,8 +1171,6 @@ async function signAutomationTransaction() {
     try {
         signBtn.disabled = true;
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Creating Transaction...</div>';
-        
-        // Validate all parameters first
         const paramInputs = document.querySelectorAll('#functionParams .param-input');
         let allValid = true;
         const functionArgs = [];
@@ -1215,7 +1197,6 @@ async function signAutomationTransaction() {
             }
         });
         
-        // Validate type arguments
         const typeArgInputs = document.querySelectorAll('.type-arg-input');
         const typeArgs = [];
         typeArgInputs.forEach(input => {
@@ -1232,23 +1213,17 @@ async function signAutomationTransaction() {
         if (!allValid) {
             throw new Error('Please fix validation errors before signing transaction');
         }
-        
-        // Check if wallet is connected
         if (!wizardState.walletProvider) {
             throw new Error('Wallet not connected. Please connect your StarKey wallet first.');
         }
-        
         showNotification('Creating automation transaction...', 'info');
         
-        // Get current chain ID
         const chainIdResponse = await wizardState.walletProvider.getChainId();
         if (!chainIdResponse || !chainIdResponse.chainId) {
             throw new Error('Could not get chain ID from wallet');
-        }
-        
+        }       
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Preparing Parameters...</div>';
         
-        // Convert function arguments to BCS format
         const bcsArgs = [];
         for (let i = 0; i < functionArgs.length; i++) {
             try {
@@ -1260,27 +1235,20 @@ async function signAutomationTransaction() {
         }
         
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Getting Sequence Number...</div>';
-        
-        // Get account sequence number
-        const senderSequenceNumber = await getAccountSequenceNumber(wizardState.walletAddress);
-        
+        const senderSequenceNumber = await getAccountSequenceNumber(wizardState.walletAddress);        
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Creating Raw Transaction...</div>';
         
-        // Prepare automation parameters
         const automationMaxGasAmount = BigInt(document.getElementById('maxGasAmount').value);
         const automationGasPriceCap = BigInt(document.getElementById('gasPriceCap').value);
         const automationFeeCap = BigInt(document.getElementById('automationFeeAuto').value.replace(/,/g, ''));
         const automationExpiryTime = BigInt(document.getElementById('expiryTimeAuto').value);
-        const automationAuxData = []; // Empty for now as per docs
+        const automationAuxData = []; 
         
-        // Create type arguments array
         const functionTypeArgs = typeArgs.map(typeArg => {
-            // Convert string type arguments to TypeTag format
-            // This is a simplified conversion - in production you'd want more robust parsing
             return typeArg;
         });
         
-        // Create serialized automation transaction
+        // Create serialized automation transaction for direct reg of automation task
         const serializedTx = supraSdkClient.createSerializedAutomationRegistrationTxPayloadRawTxObject(
             new window.HexString(wizardState.walletAddress),
             senderSequenceNumber,
@@ -1293,15 +1261,11 @@ async function signAutomationTransaction() {
             automationGasPriceCap, // Gas price cap
             automationFeeCap, // Automation fee cap
             automationExpiryTime, // Expiry timestamp
-            automationAuxData // Aux data (reserved for future use)
+            automationAuxData 
         );
         
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Signing Transaction...</div>';
-        
-        // Convert serialized transaction to hex
         const txHex = Buffer.from(serializedTx).toString('hex');
-        
-        // Prepare transaction parameters for StarKey wallet
         const txParams = {
             data: txHex,
             from: wizardState.walletAddress,
@@ -1310,24 +1274,15 @@ async function signAutomationTransaction() {
                 waitForTransaction: true
             }
         };
-        
         showNotification('Please confirm the transaction in your StarKey wallet...', 'info');
-        
-        // Send transaction through StarKey wallet
-        const txHash = await wizardState.walletProvider.sendTransaction(txParams);
-        
+        const txHash = await wizardState.walletProvider.sendTransaction(txParams);        
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Waiting for Confirmation...</div>';
-        
         showNotification('Transaction submitted! Waiting for confirmation...', 'success');
         
-        // Wait for transaction result
         const txResult = await wizardState.walletProvider.waitForTransactionWithResult({
             hash: txHash
         });
-        
-        // Display transaction status
         transactionStatus.style.display = 'block';
-        
         if (txResult && txResult.status === 'Success') {
             transactionStatus.className = 'transaction-status success';
             transactionStatus.innerHTML = `
@@ -1355,7 +1310,6 @@ async function signAutomationTransaction() {
         
     } catch (error) {
         console.error('Transaction signing error:', error);
-        
         transactionStatus.style.display = 'block';
         transactionStatus.className = 'transaction-status error';
         transactionStatus.innerHTML = `
@@ -1372,7 +1326,6 @@ async function signAutomationTransaction() {
                 </div>
             </div>
         `;
-        
         showNotification(`Transaction failed: ${error.message}`, 'error');
     } finally {
         signBtn.disabled = false;
@@ -1380,7 +1333,6 @@ async function signAutomationTransaction() {
     }
 }
 
-// Refresh automated tasks after successful transaction
 function refreshAutomatedTasks() {
     if (wizardState.walletAddress) {
         fetchAutomatedTasks(wizardState.walletAddress);
@@ -1430,9 +1382,7 @@ function generateCommand() {
     }
     generateBtn.disabled = true;
     generateBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Generating...</div>';
-    
     const functionId = `${wizardState.walletAddress}::${wizardState.selectedModule}::${wizardState.selectedFunction}`;
-    
     let cliCommand = `supra move automation register --task-max-gas-amount ${document.getElementById('maxGasAmount').value} --task-gas-price-cap ${document.getElementById('gasPriceCap').value} --task-expiry-time-secs ${document.getElementById('expiryTimeAuto').value} --task-automation-fee-cap ${document.getElementById('automationFeeAuto').value} --function-id "${functionId}" `;
     if (typeArgs.length > 0) {
         cliCommand += ` --type-args ${typeArgs.join(' ')} `;
