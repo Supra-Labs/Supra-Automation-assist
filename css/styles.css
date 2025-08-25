@@ -847,8 +847,46 @@ body {
     color: #9EABB5;
 }
 
+/* Standalone Automated Tasks Section */
+.automated-tasks-section {
+    background: rgba(29, 42, 58, 0.25);
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(53, 63, 74, 0.3);
+    border-radius: 24px;
+    padding: 2rem;
+    margin-top: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.automated-tasks-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(221, 20, 56, 0.4), transparent);
+    animation: shimmer 3s ease-in-out infinite;
+}
+
+.automated-tasks-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.automated-tasks-subtitle {
+    color: #9EABB5;
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 1rem;
+}
+
 .automated-tasks-container {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
 }
 
 .tasks-header {
