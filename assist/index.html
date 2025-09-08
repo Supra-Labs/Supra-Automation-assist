@@ -7,11 +7,74 @@
     <link rel="stylesheet" href="assist/css/styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" href="assist/assets/logo.png" type="image/png">
-    <script type="module">
-        import { SupraClient, HexString, BCS } from 'https://esm.sh/supra-l1-sdk@latest';
-        window.SupraClient = SupraClient;
-        window.HexString = HexString;
-        window.BCS = BCS;
+    <script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
+    
+    <!-- Load Supra SDK via UMD/script tag instead of ES modules -->
+    <script src="https://unpkg.com/supra-l1-sdk@latest/dist/index.umd.js"></script>
+    
+    <script>
+        (function() {
+            let BufferPolyfill = null;
+            
+            if (typeof buffer !== 'undefined' && buffer.Buffer) {
+                BufferPolyfill = buffer.Buffer;
+            } else if (typeof Buffer !== 'undefined') {
+                BufferPolyfill = Buffer;
+            }
+            
+            if (BufferPolyfill) {
+                window.Buffer = BufferPolyfill;
+                console.log('Buffer polyfill setup complete. Methods available:', {
+                    from: typeof BufferPolyfill.from,
+                    alloc: typeof BufferPolyfill.alloc,
+                    isBuffer: typeof BufferPolyfill.isBuffer
+                });
+            } else {
+                console.error('Buffer polyfill failed to load');
+                window.Buffer = {
+                    from: function(data, encoding) {
+                        if (data instanceof Uint8Array) {
+                            return data;
+                        }
+                        const arr = new Uint8Array(data);
+                        arr.toString = function(enc) {
+                            if (enc === 'hex') {
+                                return Array.from(this, byte => byte.toString(16).padStart(2, '0')).join('');
+                            }
+                            return Array.from(this).toString();
+                        };
+                        return arr;
+                    }
+                };
+                console.log('Created minimal Buffer fallback');
+            }
+        })();
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Checking SDK availability...');
+            console.log('SupraSDK object:', typeof SupraSDK);
+            if (typeof SupraSDK !== 'undefined') {
+                window.SupraClient = SupraSDK.SupraClient;
+                window.HexString = SupraSDK.HexString;
+                window.BCS = SupraSDK.BCS;
+                console.log('SDK loaded via UMD build');
+            } else {
+                loadSDKFallback();
+            }
+        });
+        
+        async function loadSDKFallback() {
+            try {
+                const module = await import('https://esm.sh/supra-l1-sdk@latest');
+                window.SupraClient = module.SupraClient;
+                window.HexString = module.HexString;
+                window.BCS = module.BCS;
+                console.log('SDK loaded via ES modules fallback');
+            } catch (error) {
+                console.error('All SDK loading methods failed:', error);
+                window.supraSDKError = true;
+            }
+        }
     </script>
 </head>
 <body>

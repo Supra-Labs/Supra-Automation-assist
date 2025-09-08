@@ -17,7 +17,7 @@ let wizardState = {
 };
 
 function init() {
-    console.log('🚀 Initializing Supra Automation Assist...');
+    console.log('Initializing Supra Automation Assist...');
     console.log('Environment:', {
         hostname: window.location.hostname,
         protocol: window.location.protocol,
@@ -40,7 +40,7 @@ async function initializeSupraSDK() {
             throw new Error('SDK failed to load from CDN');
         }
         let attempts = 0;
-        console.log('⏳ Waiting for Supra SDK to load...');
+        console.log('Waiting for Supra SDK to load...');
         while (!window.SupraClient && attempts < 50) {
             await new Promise(resolve => setTimeout(resolve, 200));
             attempts++;
@@ -49,19 +49,19 @@ async function initializeSupraSDK() {
             throw new Error('Supra SDK not available after waiting');
         }        
         supraSdkClient = new window.SupraClient('https://rpc-testnet.supra.com');
-        console.log('✅ Supra SDK initialized successfully');
+        console.log('Supra SDK initialized successfully');
         const testResponse = await fetch('https://rpc-testnet.supra.com/rpc/v2/accounts/0x1');
         if (!testResponse.ok) {
             throw new Error('RPC endpoint not accessible');
         }
-        console.log('✅ RPC endpoint verified');
+        console.log('RPC endpoint verified');
         if (!window.BCS || !window.HexString) {
             throw new Error('BCS or HexString not available');
         }
-        console.log('✅ BCS and HexString modules verified');
+        console.log('BCS and HexString modules verified');
         
     } catch (error) {
-        console.error('❌ Failed to initialize Supra SDK:', error);
+        console.error('Failed to initialize Supra SDK:', error);
         showNotification('SDK initialization failed - transaction signing unavailable', 'error');
         const signBtn = document.getElementById('signTransaction');
         if (signBtn) {
@@ -326,7 +326,7 @@ async function connectStarkeyWallet() {
         
         if (accounts && accounts.length > 0) {
             const address = accounts[0];
-            console.log('🔍 Verifying account exists on network...', address);
+            console.log('Verifying account exists on network...', address);
             try {
                 const accountCheck = await fetch(`https://rpc-testnet.supra.com/rpc/v2/accounts/${address}`);
                 const accountData = await accountCheck.json();
@@ -335,9 +335,9 @@ async function connectStarkeyWallet() {
                 if (!accountData || accountData.error) {
                     throw new Error(`Account ${address} does not exist on Supra testnet. Please ensure your wallet is connected to the correct network.`);
                 }
-                console.log('✅ Account verified on network');
+                console.log('Account verified on network');
             } catch (accountError) {
-                console.error('❌ Account verification failed:', accountError);
+                console.error('Account verification failed:', accountError);
                 showNotification(`Account verification failed: ${accountError.message}`, 'error');
                 throw accountError;
             }
@@ -350,7 +350,7 @@ async function connectStarkeyWallet() {
             document.getElementById('connectWallet').style.display = 'none';
             document.getElementById('manualAddressGroup').style.display = 'none';
             document.getElementById('autoScanStatus').style.display = 'block';
-            document.getElementById('autoScanStatus').innerHTML = '🔍 Scanning for modules at your wallet address...';
+            document.getElementById('autoScanStatus').innerHTML = 'Scanning for modules at your wallet address...';
             
             setTimeout(() => {
                 autoScanWalletModules(address);
@@ -379,7 +379,6 @@ async function connectStarkeyWallet() {
             showNotification(`Connection failed: ${error.message}`, 'error');
         }
         
-        // Demo mode fallback incase it wont work in some browser
         setTimeout(() => {
             wizardState.walletConnected = true;
             wizardState.walletAddress = '0x1c5acf62be507c27a7788a661b546224d806246765ff2695efece60194c6df05';
@@ -389,7 +388,7 @@ async function connectStarkeyWallet() {
             document.getElementById('connectWallet').style.display = 'none';
             document.getElementById('manualAddressGroup').style.display = 'none';
             document.getElementById('autoScanStatus').style.display = 'block';
-            document.getElementById('autoScanStatus').innerHTML = '🔍 Demo mode - loading example modules...';
+            document.getElementById('autoScanStatus').innerHTML = 'Demo mode - loading example modules...';
             
             setTimeout(() => {
                 autoScanWalletModules(wizardState.walletAddress);
@@ -422,7 +421,7 @@ function useManualAddress() {
     document.getElementById('connectWallet').style.display = 'none';
     document.getElementById('manualAddressGroup').style.display = 'none';
     document.getElementById('autoScanStatus').style.display = 'block';
-    document.getElementById('autoScanStatus').innerHTML = '🔍 Scanning for modules at specified address...';
+    document.getElementById('autoScanStatus').innerHTML = 'Scanning for modules at specified address...';
     
     setTimeout(() => {
         autoScanWalletModules(manualAddress);
@@ -436,7 +435,7 @@ async function autoScanWalletModules(walletAddress) {
         const moduleCountInput = document.getElementById('moduleCount');
         const moduleCount = moduleCountInput ? parseInt(moduleCountInput.value) || 20 : 20;
         
-        document.getElementById('autoScanStatus').innerHTML = `🔍 Fetching ${moduleCount} modules from address...`;
+        document.getElementById('autoScanStatus').innerHTML = `Fetching ${moduleCount} modules from address...`;
         
         let modules = [];
         let apiUsed = '';
@@ -493,7 +492,7 @@ async function autoScanWalletModules(walletAddress) {
         console.log('Valid module names:', validModules.map(m => m.name));
         
         if (validModules.length > 0) {
-            document.getElementById('autoScanStatus').innerHTML = `✅ Found ${validModules.length} modules using ${apiUsed} API! (Requested: ${moduleCount})`;
+            document.getElementById('autoScanStatus').innerHTML = `Found ${validModules.length} modules using ${apiUsed} API! (Requested: ${moduleCount})`;
             displayModules(validModules, walletAddress);
             enableStep(2);  
             try {
@@ -512,7 +511,7 @@ async function autoScanWalletModules(walletAddress) {
         const moduleCountInput = document.getElementById('moduleCount');
         const moduleCount = moduleCountInput ? parseInt(moduleCountInput.value) || 20 : 20;
         
-        document.getElementById('autoScanStatus').innerHTML = `⚠️ API scan failed (requested ${moduleCount}) - loading demo modules...`;
+        document.getElementById('autoScanStatus').innerHTML = `API scan failed (requested ${moduleCount}) - loading demo modules...`;
         
         const demoModules = [
             { name: 'auto_incr', bytecode: 'Available' },
@@ -697,9 +696,9 @@ function displayAutomatedTasks(tasks) {
                 functionId = functionParts[functionParts.length - 1];
             }
         }
-                const gasAmount = (task.header && task.header.max_gas_amount) || 'Unknown';
-         const gasUsed = (task.output && task.output.Move && task.output.Move.gas_used) || 'Unknown';
-                let createdDisplay = 'Unknown';
+        const gasAmount = (task.header && task.header.max_gas_amount) || 'Unknown';
+        const gasUsed = (task.output && task.output.Move && task.output.Move.gas_used) || 'Unknown';
+        let createdDisplay = 'Unknown';
         if (task.block_header && task.block_header.timestamp) {
             try {
                 let timestamp;
@@ -889,7 +888,6 @@ async function selectModule(moduleName, baseAddress, event) {
     }
 }
 
-// Only entry functions based on Nolans feedback
 function extractEntryFunctions(abi) {
     try {
         let functions = [];
@@ -1080,7 +1078,7 @@ function updateAutomationParams() {
     const automationFee = document.getElementById('feeCapValue').textContent;
     document.getElementById('automationFeeAuto').value = automationFee || 'Calculating...';
     generateDeploymentSummary();
-    enableStep(5); 
+    enableStep(5);
 }
 
 function generateDeploymentSummary() {
@@ -1113,7 +1111,6 @@ function generateDeploymentSummary() {
     `;
 }
 
-// Convert Move parameter to BCS serialized format for the sdk requirements, u can check sdk docs for details
 function convertParameterToBCS(value, type) {
     if (!window.BCS) {
         throw new Error('BCS module not loaded');
@@ -1137,7 +1134,6 @@ function convertParameterToBCS(value, type) {
         } else if (type === 'bool') {
             return window.BCS.bcsSerializeBool(value === 'true');
         } else if (type.includes('vector<u8>')) {
-
             return window.BCS.bcsSerializeStr(value);
         } else {
             return window.BCS.bcsSerializeStr(value);
@@ -1159,11 +1155,22 @@ async function getAccountSequenceNumber(address) {
         }
     } catch (error) {
         console.error('Error fetching sequence number:', error);
-        return BigInt(0); // Fallback to 0
+        return BigInt(0);
     }
 }
 
-// Sign and submit automation transaction FINALLY Yayyy!
+async function switchToSupraTestnet() {
+    try {
+        console.log('Attempting to switch wallet to Supra testnet...');
+        const response = await wizardState.walletProvider.changeNetwork({ chainId: '6' });
+        console.log('Network switch successful:', response);
+        return true;
+    } catch (error) {
+        console.error('Network switch failed:', error);
+        return false;
+    }
+}
+
 async function signAutomationTransaction() {
     const signBtn = document.getElementById('signTransaction');
     const transactionStatus = document.getElementById('transactionStatus');
@@ -1171,6 +1178,7 @@ async function signAutomationTransaction() {
     try {
         signBtn.disabled = true;
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Creating Transaction...</div>';
+        
         const paramInputs = document.querySelectorAll('#functionParams .param-input');
         let allValid = true;
         const functionArgs = [];
@@ -1213,15 +1221,57 @@ async function signAutomationTransaction() {
         if (!allValid) {
             throw new Error('Please fix validation errors before signing transaction');
         }
+        
         if (!wizardState.walletProvider) {
             throw new Error('Wallet not connected. Please connect your StarKey wallet first.');
         }
+        
         showNotification('Creating automation transaction...', 'info');
         
-        const chainIdResponse = await wizardState.walletProvider.getChainId();
-        if (!chainIdResponse || !chainIdResponse.chainId) {
-            throw new Error('Could not get chain ID from wallet');
-        }       
+console.log('Getting chain ID from wallet...');
+const chainIdResponse = await wizardState.walletProvider.getChainId();
+console.log('Raw chainIdResponse:', JSON.stringify(chainIdResponse, null, 2));
+
+if (!chainIdResponse || !chainIdResponse.chainId) {
+    throw new Error('Could not get chain ID from wallet');
+}
+let walletChainId = chainIdResponse.chainId;
+if (typeof walletChainId === 'string') {
+    if (walletChainId.startsWith('0x')) {
+        walletChainId = parseInt(walletChainId, 16);
+    } else {
+        walletChainId = parseInt(walletChainId, 10);
+    }
+}
+
+console.log('Final walletChainId (as number):', walletChainId);
+const expectedChainId = 6; // Supra testnet
+if (walletChainId !== expectedChainId) {
+    console.log(`Wallet is on chain ${walletChainId}, need testnet (${expectedChainId}). Attempting to switch...`);
+    
+    showNotification('Switching wallet to Supra testnet...', 'info');
+    const switchSuccess = await switchToSupraTestnet();
+    
+    if (switchSuccess) {
+        const newChainResponse = await wizardState.walletProvider.getChainId();
+        let newChainId = newChainResponse.chainId;
+        if (typeof newChainId === 'string') {
+            newChainId = newChainId.startsWith('0x') ? parseInt(newChainId, 16) : parseInt(newChainId, 10);
+        }
+        
+        if (newChainId !== expectedChainId) {
+            throw new Error(`Network switch failed. Please manually switch your StarKey wallet to Supra testnet (chain ID ${expectedChainId}).`);
+        }
+        
+        showNotification('Successfully switched to Supra testnet!', 'success');
+        console.log('Network switch verified - wallet is now on testnet');
+    } else {
+        throw new Error(`Please manually switch your StarKey wallet to Supra testnet (chain ID ${expectedChainId}). Current chain: ${walletChainId}`);
+    }
+} else {
+    console.log('Chain ID verified - wallet is already on correct network');
+}
+        
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Preparing Parameters...</div>';
         
         const bcsArgs = [];
@@ -1235,37 +1285,55 @@ async function signAutomationTransaction() {
         }
         
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Getting Sequence Number...</div>';
-        const senderSequenceNumber = await getAccountSequenceNumber(wizardState.walletAddress);        
+        
+        const senderSequenceNumber = await getAccountSequenceNumber(wizardState.walletAddress);
+        
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Creating Raw Transaction...</div>';
         
         const automationMaxGasAmount = BigInt(document.getElementById('maxGasAmount').value);
         const automationGasPriceCap = BigInt(document.getElementById('gasPriceCap').value);
         const automationFeeCap = BigInt(document.getElementById('automationFeeAuto').value.replace(/,/g, ''));
         const automationExpiryTime = BigInt(document.getElementById('expiryTimeAuto').value);
-        const automationAuxData = []; 
+        const automationAuxData = [];
         
         const functionTypeArgs = typeArgs.map(typeArg => {
             return typeArg;
         });
         
-        // Create serialized automation transaction for direct reg of automation task
         const serializedTx = supraSdkClient.createSerializedAutomationRegistrationTxPayloadRawTxObject(
             new window.HexString(wizardState.walletAddress),
             senderSequenceNumber,
-            wizardState.walletAddress, // Module address (same as sender for user modules)
-            wizardState.selectedModule, // Module name
-            wizardState.selectedFunction, // Function name
-            functionTypeArgs, // Type arguments
-            bcsArgs, // Function arguments
-            automationMaxGasAmount, // Max gas amount for automated transaction
-            automationGasPriceCap, // Gas price cap
-            automationFeeCap, // Automation fee cap
-            automationExpiryTime, // Expiry timestamp
-            automationAuxData 
+            wizardState.walletAddress,
+            wizardState.selectedModule,
+            wizardState.selectedFunction,
+            functionTypeArgs,
+            bcsArgs,
+            automationMaxGasAmount,
+            automationGasPriceCap,
+            automationFeeCap,
+            automationExpiryTime,
+            automationAuxData
         );
         
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Signing Transaction...</div>';
-        const txHex = Buffer.from(serializedTx).toString('hex');
+        
+        // Enhanced hex conversion without Buffer dependency
+        let txHex;
+        try {
+            if (window.Buffer && typeof window.Buffer.from === 'function') {
+                txHex = window.Buffer.from(serializedTx).toString('hex');
+                console.log('Used Buffer for hex conversion');
+            } else {
+                const uint8Array = new Uint8Array(serializedTx);
+                txHex = Array.from(uint8Array, byte => byte.toString(16).padStart(2, '0')).join('');
+                console.log('Used manual hex conversion');
+            }
+            console.log('Transaction hex length:', txHex.length);
+        } catch (bufferError) {
+            console.error('Hex conversion failed:', bufferError);
+            throw new Error(`Failed to convert transaction to hex: ${bufferError.message}`);
+        }
+        
         const txParams = {
             data: txHex,
             from: wizardState.walletAddress,
@@ -1274,15 +1342,21 @@ async function signAutomationTransaction() {
                 waitForTransaction: true
             }
         };
+        
         showNotification('Please confirm the transaction in your StarKey wallet...', 'info');
-        const txHash = await wizardState.walletProvider.sendTransaction(txParams);        
+        
+        const txHash = await wizardState.walletProvider.sendTransaction(txParams);
+        
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Waiting for Confirmation...</div>';
+        
         showNotification('Transaction submitted! Waiting for confirmation...', 'success');
         
         const txResult = await wizardState.walletProvider.waitForTransactionWithResult({
             hash: txHash
         });
+        
         transactionStatus.style.display = 'block';
+        
         if (txResult && txResult.status === 'Success') {
             transactionStatus.className = 'transaction-status success';
             transactionStatus.innerHTML = `
@@ -1303,13 +1377,14 @@ async function signAutomationTransaction() {
                     </div>
                 </div>
             `;
-            showNotification('Automation transaction successful! 🎉', 'success');
+            showNotification('Automation transaction successful!', 'success');
         } else {
             throw new Error(`Transaction failed: ${txResult?.vmStatus || 'Unknown error'}`);
         }
         
     } catch (error) {
         console.error('Transaction signing error:', error);
+        
         transactionStatus.style.display = 'block';
         transactionStatus.className = 'transaction-status error';
         transactionStatus.innerHTML = `
@@ -1326,10 +1401,11 @@ async function signAutomationTransaction() {
                 </div>
             </div>
         `;
+        
         showNotification(`Transaction failed: ${error.message}`, 'error');
     } finally {
         signBtn.disabled = false;
-        signBtn.innerHTML = '<div class="btn-icon">✍️</div><div class="btn-text">Sign & Submit Transaction</div>';
+        signBtn.innerHTML = '<div class="btn-icon">🦾</div><div class="btn-text">Register Automation Task from Starkey</div>';
     }
 }
 
