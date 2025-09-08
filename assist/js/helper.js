@@ -1228,49 +1228,56 @@ async function signAutomationTransaction() {
         
         showNotification('Creating automation transaction...', 'info');
         
-console.log('Getting chain ID from wallet...');
-const chainIdResponse = await wizardState.walletProvider.getChainId();
-console.log('Raw chainIdResponse:', JSON.stringify(chainIdResponse, null, 2));
+        console.log('Getting chain ID from wallet...');
+        const chainIdResponse = await wizardState.walletProvider.getChainId();
+        console.log('Raw chainIdResponse:', JSON.stringify(chainIdResponse, null, 2));
 
-if (!chainIdResponse || !chainIdResponse.chainId) {
-    throw new Error('Could not get chain ID from wallet');
-}
-let walletChainId = chainIdResponse.chainId;
-if (typeof walletChainId === 'string') {
-    if (walletChainId.startsWith('0x')) {
-        walletChainId = parseInt(walletChainId, 16);
-    } else {
-        walletChainId = parseInt(walletChainId, 10);
-    }
-}
+        if (!chainIdResponse || !chainIdResponse.chainId) {
+            throw new Error('Could not get chain ID from wallet');
+        }
+        let walletChainId = chainIdResponse.chainId;
+        if (typeof walletChainId === 'string') {
+            if (walletChainId.startsWith('0x')) {
+                walletChainId = parseInt(walletChainId, 16);
+            } else {
+                walletChainId = parseInt(walletChainId, 10);
+            }
+        }
 
-console.log('Final walletChainId (as number):', walletChainId);
-const expectedChainId = 6; // Supra testnet
-if (walletChainId !== expectedChainId) {
-    console.log(`Wallet is on chain ${walletChainId}, need testnet (${expectedChainId}). Attempting to switch...`);
-    
-    showNotification('Switching wallet to Supra testnet...', 'info');
-    const switchSuccess = await switchToSupraTestnet();
-    
-    if (switchSuccess) {
-        const newChainResponse = await wizardState.walletProvider.getChainId();
-        let newChainId = newChainResponse.chainId;
-        if (typeof newChainId === 'string') {
-            newChainId = newChainId.startsWith('0x') ? parseInt(newChainId, 16) : parseInt(newChainId, 10);
+        console.log('Final walletChainId (as number):', walletChainId);
+        const expectedChainId = 6; // Supra testnet
+        if (walletChainId !== expectedChainId) {
+            console.log(`Wallet is on chain ${walletChainId}, need testnet (${expectedChainId}). Attempting to switch...`);
+            
+            showNotification('Switching wallet to Supra testnet...', 'info');
+            const switchSuccess = await switchToSupraTestnet();
+            
+            if (switchSuccess) {
+                const newChainResponse = await wizardState.walletProvider.getChainId();
+                let newChainId = newChainResponse.chainId;
+                if (typeof newChainId === 'string') {
+                    newChainId = newChainId.startsWith('0x') ? parseInt(newChainId, 16) : parseInt(newChainId, 10);
+                }
+                
+                if (newChainId !== expectedChainId) {
+                    throw new Error(`Network switch failed. Please manually switch your StarKey wallet to Supra testnet (chain ID ${expectedChainId}).`);
+                }
+                
+                showNotification('Successfully switched to Supra testnet! Please sign the transaction again.', 'success');
+                console.log('Network switch verified - wallet is now on testnet');
+                
+                // Wait for 4 seconds and exit
+                setTimeout(() => {
+                    signBtn.disabled = false;
+                    signBtn.innerHTML = '<div class="btn-icon">🦾</div><div class="btn-text">Register Automation Task from Starkey</div>';
+                }, 3000);
+                return; // Exit the function to allow the user to sign again
+            } else {
+                throw new Error(`Please manually switch your StarKey wallet to Supra testnet (chain ID ${expectedChainId}). Current chain: ${walletChainId}`);
+            }
+        } else {
+            console.log('Chain ID verified - wallet is already on correct network');
         }
-        
-        if (newChainId !== expectedChainId) {
-            throw new Error(`Network switch failed. Please manually switch your StarKey wallet to Supra testnet (chain ID ${expectedChainId}).`);
-        }
-        
-        showNotification('Successfully switched to Supra testnet!', 'success');
-        console.log('Network switch verified - wallet is now on testnet');
-    } else {
-        throw new Error(`Please manually switch your StarKey wallet to Supra testnet (chain ID ${expectedChainId}). Current chain: ${walletChainId}`);
-    }
-} else {
-    console.log('Chain ID verified - wallet is already on correct network');
-}
         
         signBtn.innerHTML = '<div class="loading-spinner"></div><div class="btn-text">Preparing Parameters...</div>';
         
