@@ -47,4 +47,4 @@ status updates
 
 ## Contributing to Supra AutoFi Marketplace
 
-If you wish to contribute your own Supra Automation Module for the Community to the Supra AutoFi Marketplace, Kindly Check Contributing Markdown file from `Contribute.md`in main repo.
+If you wish to contribute your own Supra Automation Module for the Community to the Supra AutoFi Marketplace, Kindly Check Contributing Markdown file from [`Contribute.md`](./Contribute.md) in main repo.
