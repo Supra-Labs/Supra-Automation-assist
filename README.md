@@ -1,6 +1,6 @@
 # Supra Automation Assist
 
-> **👀 New Feature: Direct Transaction Signing:** You can now sign and register automation transactions directly from the browser using your StarKey wallet.
+> **New Feature: AutoFi Marketplace -** Contribute your own Supra Automation Module for the Community to the Supra AutoFi Marketplace.
 
 ## How it Works?
 
@@ -45,9 +45,6 @@ status updates
 3. Copy the generated command
 4. Run in your terminal with Supra CLI
 
-## Resources
+## Contributing to Supra AutoFi Marketplace
 
-- [Supra CLI Installation](https://docs.supra.com/network/move/getting-started/supra-cli-with-docker)
-- [Automation Documentation](https://docs.supra.com/automation)
-- [Network Information](https://docs.supra.com/network/move/network-information)
-- [Developer Support](https://discord.gg/supralabs)
+If you wish to contribute your own Supra Automation Module for the Community to the Supra AutoFi Marketplace, Kindly Check Contributing Markdown file from `Contribute.md`in main repo.

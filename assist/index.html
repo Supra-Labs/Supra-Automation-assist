@@ -8,14 +8,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="icon" href="assist/assets/logo.png" type="image/png">
     <script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
-    
-    <!-- Load Supra SDK via UMD/script tag instead of ES modules -->
     <script src="https://unpkg.com/supra-l1-sdk@latest/dist/index.umd.js"></script>
-    
     <script>
         (function() {
             let BufferPolyfill = null;
-            
             if (typeof buffer !== 'undefined' && buffer.Buffer) {
                 BufferPolyfill = buffer.Buffer;
             } else if (typeof Buffer !== 'undefined') {
@@ -49,7 +45,6 @@
                 console.log('Created minimal Buffer fallback');
             }
         })();
-        
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Checking SDK availability...');
             console.log('SupraSDK object:', typeof SupraSDK);
@@ -61,8 +56,7 @@
             } else {
                 loadSDKFallback();
             }
-        });
-        
+        });        
         async function loadSDKFallback() {
             try {
                 const module = await import('https://esm.sh/supra-l1-sdk@latest');
@@ -295,7 +289,6 @@
                         </div>
                     </div>
                 </div>
-                
                 <div class="wizard-step disabled" id="step-5">
                     <div class="step-header">
                         <div class="step-number">5</div>
@@ -328,8 +321,50 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Standalone Automated Tasks Section -->
+                <div class="marketplace-section">
+            <h3 class="marketplace-title">AutoFi Marketplace</h3>
+            <p class="marketplace-subtitle">Discover and use automation modules shared by the Supra community</p>
+            
+            <div class="marketplace-container">
+                <div class="marketplace-header">
+                    <div class="marketplace-stats">
+                        <div class="stat-badge">
+                            <span class="badge-icon">📦</span>
+                            <span class="badge-text"><strong id="totalModules">0</strong> Modules</span>
+                        </div>
+                        <div class="stat-badge">
+                            <span class="badge-icon">👥</span>
+                            <span class="badge-text"><strong id="totalContributors">0</strong> Contributors</span>
+                        </div>
+                    </div>
+                    <div class="marketplace-filters">
+                        <input type="text" 
+                               id="marketplaceSearch" 
+                               class="search-input" 
+                               placeholder="Search modules...">
+                        <select id="categoryFilter" class="filter-select">
+                            <option value="all">All Categories</option>
+                            <option value="DeFi">Payments</option>
+                             <option value="NFT">NFT</option>
+                             <option value="NFT">SocialFi</option>
+                             <option value="NFT">Trading</option>
+                        </select>
+                    </div>
+                </div>                
+                <div class="marketplace-grid" id="marketplaceGrid">
+                </div>
+                <div class="marketplace-cta">
+                    <div class="cta-content">
+                        <h4>Want to share your automation module?</h4>
+                        <p>Contribute to the community by submitting your automation modules</p>
+                    </div>
+                    <a href="https://github.com/Supra-Labs/Supra-Automation-assist/" target="_blank" class="cta-btn">
+                        <span class="btn-icon">💡</span>
+                        <span class="btn-text">Submit Your Module</span>
+                    </a>
+                </div>
+            </div>
+        </div>
         <div class="automated-tasks-section">
             <h3 class="automated-tasks-title">📋 View Automated Tasks</h3>
             <p class="automated-tasks-subtitle">Monitor and manage your existing automation tasks</p>
@@ -400,6 +435,7 @@
         <span>•</span>
         <a href="https://docs.supra.com" style="color: #DD1438; text-decoration: none;">Docs</a>
     </div>
+    <script src="assist/js/autofimarketplace.js"></script>
     <script src="assist/js/helper.js"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
       {
         "name": "Auto Wallet TopUp",
         "description": "Automatically top up wallets when balance falls below threshold. Perfect for maintaining gas reserves for active accounts.",
-        "category": "Utility",
+        "category": "Payment",
         "address": "0x1c5acf62be507c27a7788a661b546224d806246765ff2695efece60194c6df05",
         "module": "auto_topup",
         "githubRepo": "https://github.com/supraoracles/auto-topup-module",
