@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Supra Automation Assist</title>
     <link rel="stylesheet" href="assist/css/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="assist/assets/logo.png" type="image/png">
     <script src="https://unpkg.com/buffer@6.0.3/index.js"></script>
     <script src="https://unpkg.com/supra-l1-sdk@latest/dist/index.umd.js"></script>
@@ -77,255 +77,454 @@
     <div class="floating-letters"></div>
     <div class="grid-overlay"></div>
     
-    <div class="container">
-        <div class="header">
-            <h1 class="logo">Supra AutoFi Assist for faster Deployment</h1>
-        </div>
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon"></div>
-                    <div class="stat-title">Network Status</div>
+    <!-- App Layout with Sidebar -->
+    <div class="app-layout">
+        
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-sidebar">
+                    <span class="logo-text">AutoFi Assist</span>
                 </div>
-                <div class="stat-value" id="networkStatus">
-                    <div class="loading-spinner"></div>
-                </div>
+                <button class="btn-icon-only" id="toggleSidebar">
+                    <span>☰</span>
+                </button>
             </div>
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon countdown-icon"></div>
-                    <div class="stat-title">Next Epoch In</div>
-                </div>
-                <div class="stat-value countdown-value" id="timeToNext">
-                    <div class="loading-spinner"></div>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-header">
-                    <div class="stat-icon"></div>
-                    <div class="stat-title">Automation Fee</div>
-                </div>
-                <div class="stat-value" id="estimatedFee">
-                    <div class="loading-spinner"></div>
-                </div>
-            </div>
-        </div>
-        <div class="values-section">
-            <h3 class="values-title">Ready-to-Use Values</h3>
             
-            <div class="values-grid">
-                <div class="value-item">
-                    <div class="value-info">
-                        <div class="value-label">--task-expiry-time-secs</div>
-                        <div class="value-content" id="expiryTimeValue">Calculating...</div>
-                    </div>
-                    <button class="copy-btn" onclick="copyToClipboard('expiryTimeValue', this)">Copy</button>
+            <nav class="sidebar-nav">
+                <a href="#dashboard" class="nav-item active" data-section="dashboard">
+                    <span class="nav-icon">☯</span>
+                    <span class="nav-label">Get Started</span>
+                </a>
+                <a href="#automation" class="nav-item" data-section="automation">
+                    <span class="nav-icon">🖱</span>
+                    <span class="nav-label">Create Task</span>
+                </a>
+                <a href="#marketplace" class="nav-item" data-section="marketplace">
+                    <span class="nav-icon">☰</span>
+                    <span class="nav-label">Marketplace</span>
+                </a>
+                <a href="#tasks" class="nav-item" data-section="tasks">
+                    <span class="nav-icon">𖣐</span>
+                    <span class="nav-label">My Tasks</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="https://docs.supra.com/automation" target="_blank" class="footer-link">
+                    <span class="footer-icon">📚</span>
+                    <span>Documentation</span>
+                </a>
+                <a href="https://discord.gg/supralabs" target="_blank" class="footer-link">
+                    <span class="footer-icon">💬</span>
+                    <span>Support</span>
+                </a>
+            </div>
+        </aside>
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div class="page-title">
+                    <h1 id="pageTitle">Get Started with Supra AutoFi</h1>
+                    <p id="pageSubtitle">Professional automation tooling for Supra developers</p>
                 </div>
-                <div class="value-item">
-                    <div class="value-info">
-                        <div class="value-label">--task-automation-fee-cap</div>
-                        <div class="value-content" id="feeCapValue">Calculating...</div>
+                <div class="top-bar-actions">
+                    <div class="network-badge">
+                        <span class="network-dot"></span>
+                        <span id="topBarNetwork">Testnet</span>
                     </div>
-                    <button class="copy-btn" onclick="copyToClipboard('feeCapValue', this)">Copy</button>
-                </div>
-                <div class="value-item">
-                    <div class="value-info">
-                        <div class="value-label">Complete CLI Command</div>
-                        <div class="value-content cli-content" id="cliTemplate">Generating...</div>
-                    </div>
-                    <button class="copy-btn" onclick="copyToClipboard('cliTemplate', this)">Copy</button>
+                    <button class="disconnect-wallet-btn" id="disconnectWallet" style="display: none;">
+                        <span class="disconnect-icon">🔌</span>
+                        <span>Disconnect Wallet</span>
+                    </button>
                 </div>
             </div>
-        </div>
-        <div class="automation-section">
-            <h3 class="automation-title">🤖 Automation Registry CLI Command Generator & Transaction Signer</h3>
-            <p class="automation-subtitle">Connect wallet → Select module → Select function → Configure parameters → Register an Automation Task</p>
             
-            <div class="wizard-container">
-                <div class="wizard-step" id="step-1">
-                    <div class="step-header">
-                        <div class="step-number">1</div>
-                        <div class="step-info">
-                            <div class="step-title">Connect Wallet or Enter Address</div>
-                            <div class="step-desc">Connect your Starkey wallet or manually enter an account address</div>
+            <!-- Dashboard Section -->
+            <section id="dashboardSection" class="content-section active">
+                
+                <!-- Network Stats -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon network-icon">🌐</div>
+                            <div class="stat-label">Network Status</div>
+                        </div>
+                        <div class="stat-value" id="networkStatus">
+                            <div class="loading-spinner"></div>
                         </div>
                     </div>
-                    <div class="step-content">
-                        <div class="input-group">
-                            <button class="connect-btn" id="connectWallet">
-                                <div class="btn-icon">🗝️</div>
-                                <div class="btn-text">Connect Starkey Wallet</div>
-                            </button>
-                            <span style="color: #9EABB5; font-weight: 600;">OR</span>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon countdown-icon">⏱️</div>
+                            <div class="stat-label">Next Epoch In</div>
+                        </div>
+                        <div class="stat-value countdown-value" id="timeToNext">
+                            <div class="loading-spinner"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon fee-icon">💰</div>
+                            <div class="stat-label">Automation Fee</div>
+                        </div>
+                        <div class="stat-value" id="estimatedFee">
+                            <div class="loading-spinner"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Ready-to-Use Values -->
+                <div class="values-panel">
+                    <h3 class="panel-title">
+                        Ready-to-Use Values
+                    </h3>
+                    
+                    <div class="values-grid">
+                        <div class="value-card">
+                            <div class="value-header">
+                                <span class="value-label">--task-expiry-time-secs</span>
+                                <button class="copy-btn" onclick="copyToClipboard('expiryTimeValue', this)">
+                                    <span class="copy-icon">📋</span>
+                                    Copy
+                                </button>
+                            </div>
+                            <div class="value-content" id="expiryTimeValue">Calculating...</div>
                         </div>
                         
-                        <div class="input-group" id="manualAddressGroup">
-                            <input type="text" 
-                                   id="manualAddress" 
-                                   class="wizard-input" 
-                                   placeholder="Enter account address (0x...)"
-                                   maxlength="66">
-                            <button class="connect-btn" id="useManualAddress">
-                                <div class="btn-icon">🔍</div>
-                                <div class="btn-text">Use Address</div>
-                            </button>
+                        <div class="value-card">
+                            <div class="value-header">
+                                <span class="value-label">--task-automation-fee-cap</span>
+                                <button class="copy-btn" onclick="copyToClipboard('feeCapValue', this)">
+                                    <span class="copy-icon">📋</span>
+                                    Copy
+                                </button>
+                            </div>
+                            <div class="value-content" id="feeCapValue">Calculating...</div>
                         </div>
-                        <div class="input-group" id="moduleCountGroup">
-                            <label for="moduleCount" style="color: #9EABB5; font-weight: 600; margin-bottom: 0.5rem; display: block;">
-                                Number of modules to fetch:
-                                <div class="hint-icon">?
-                                    <div class="hint-tooltip">Specify how many modules to fetch from your account. Default is 20, but you can increase it to see more modules (recommended: 40-50 for most users).</div>
-                                </div>
-                            </label>
-                            <input type="number" 
-                                   id="moduleCount" 
-                                   class="wizard-input" 
-                                   placeholder="Enter number of modules (default: 20)"
-                                   value="50"
-                                   min="1"
-                                   max="200"
-                                   style="width: 200px; margin-right: 1rem;">
-                            <small style="color: #9EABB5; font-size: 0.8rem; margin-top: 0.25rem; display: block;">
-                                Recommended: 40-50 modules. Max: 200
-                            </small>
-                        </div>                        
-                        <div class="wallet-status" id="walletStatus" style="display: none;">
-                            <div class="status-connected">✅ Connected: <span id="walletAddress"></span></div>
-                        </div>
-                        <div class="loading-state" id="autoScanStatus" style="display: none;">
-                            <div class="loading-spinner"></div>
-                            <span>Scanning for modules...</span>
-                        </div>
-                    </div>
-                </div>                
-                <div class="wizard-step disabled" id="step-2">
-                    <div class="step-header">
-                        <div class="step-number">2</div>
-                        <div class="step-info">
-                            <div class="step-title">Select Module</div>
-                            <div class="step-desc">Choose a module to explore its entry functions</div>
-                        </div>
-                    </div>
-                    <div class="step-content">
-                        <div class="modules-grid" id="modulesList">
-                        </div>
-                        <div class="loading-state" id="abiLoading" style="display: none;">
-                            <div class="loading-spinner"></div>
-                            <span>Loading module functions...</span>
+                        
+                        <div class="value-card full-width">
+                            <div class="value-header">
+                                <span class="value-label">Complete CLI Command</span>
+                                <button class="copy-btn" onclick="copyToClipboard('cliTemplate', this)">
+                                    <span class="copy-icon">📋</span>
+                                    Copy
+                                </button>
+                            </div>
+                            <div class="value-content cli-content" id="cliTemplate">Generating...</div>
                         </div>
                     </div>
                 </div>
-                <div class="wizard-step disabled" id="step-3">
-                    <div class="step-header">
-                        <div class="step-number">3</div>
-                        <div class="step-info">
-                            <div class="step-title">Select Entry Function</div>
-                            <div class="step-desc">Pick the entry function to automate (only entry functions are shown)</div>
-                        </div>
-                    </div>
-                    <div class="step-content">
-                        <div class="functions-grid" id="functionsList">
-                        </div>
-                    </div>
-                </div>                
-                <div class="wizard-step disabled" id="step-4">
-                    <div class="step-header">
-                        <div class="step-number">4</div>
-                        <div class="step-info">
-                            <div class="step-title">Configure Parameters</div>
-                            <div class="step-desc">Set function arguments and automation settings</div>
-                        </div>
-                    </div>
-                    <div class="step-content">
-                        <div class="params-container">
-                            <div class="params-section">
-                                <h4>Function Parameters</h4>
-                                <div id="functionParams">
-                                </div>
-                            </div>
-                            <div class="params-section">
-                                <h4>Automation Settings</h4>
-                                <div class="automation-params">
-                                    <div class="param-row">
-                                        <label>
-                                            Max Gas Amount
-                                            <div class="hint-icon">?
-                                                <div class="hint-tooltip">Maximum amount of gas that can be consumed by this automation task. Higher values allow for more complex operations but cost more.</div>
-                                            </div>
-                                        </label>
-                                        <input type="number" id="maxGasAmount" value="5000" class="param-input" min="1000" max="1000000">
-                                    </div>
-                                    <div class="param-row">
-                                        <label>
-                                            Gas Price Cap
-                                            <div class="hint-icon">?
-                                                <div class="hint-tooltip">Maximum gas price you're willing to pay per unit of gas. Set higher for faster execution during network congestion.</div>
-                                            </div>
-                                        </label>
-                                        <input type="number" id="gasPriceCap" value="200" class="param-input" min="1" max="10000">
-                                    </div>
-                                    <div class="param-row">
-                                        <label>
-                                            Expiry Time (seconds)
-                                            <div class="hint-icon">?
-                                                <div class="hint-tooltip">Unix timestamp when this automation task expires. Maximum 7 days from registration time. Auto-calculated based on next epoch + buffer.</div>
-                                            </div>
-                                        </label>
-                                        <input type="number" id="expiryTimeAuto" readonly class="param-input readonly">
-                                        <small>Auto-calculated (max 7 days from now)</small>
-                                    </div>
-                                    <div class="param-row">
-                                        <label>
-                                            Automation Fee Cap
-                                            <div class="hint-icon">?
-                                                <div class="hint-tooltip">Maximum fee you'll pay for the automation service. Auto-calculated based on your max gas amount and current network conditions.</div>
-                                            </div>
-                                        </label>
-                                        <input type="text" id="automationFeeAuto" readonly class="param-input readonly">
-                                        <small>Auto-calculated from network data</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                
+                <!-- Quick Actions -->
+                <div class="quick-actions">
+                    <button class="action-btn primary" onclick="navigateToSection('automation')">
+                        <span>Create Automation Task</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="navigateToSection('marketplace')">
+                        <span>Browse Marketplace</span>
+                    </button>
+                    <button class="action-btn secondary" onclick="navigateToSection('tasks')">
+                        <span>View My Tasks</span>
+                    </button>
                 </div>
-                <div class="wizard-step disabled" id="step-5">
-                    <div class="step-header">
-                        <div class="step-number">5</div>
-                        <div class="step-info">
-                            <div class="step-title">Generate CLI Command or Submit Automation Directly</div>
-                            <div class="step-desc">Get your ready-to-use automation deployment command or sign directly with wallet</div>
-                        </div>
-                    </div>
-                    <div class="step-content">
-                        <div class="deployment-preview">
-                            <h4>Deployment Summary</h4>
-                            <div class="summary-grid" id="deploymentSummary">
-                            </div>
-                        </div>
-                        <div class="deploy-actions">
-                            <button class="deploy-btn" id="generateCommand">
-                                <div class="btn-icon">📋</div>
-                                <div class="btn-text">Generate CLI Command</div>
-                            </button>
-                            <button class="deploy-btn" id="signTransaction">
-                                <div class="btn-icon">🦾</div>
-                                <div class="btn-text">Register Automation Task from Starkey</div>
-                            </button>
-                        </div>
-                        <div class="deploy-status" id="deployStatus" style="display: none;">
-                        </div>
-                        <div class="transaction-status" id="transactionStatus" style="display: none;">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-                <div class="marketplace-section">
-            <h3 class="marketplace-title">AutoFi Marketplace</h3>
-            <p class="marketplace-subtitle">Discover and use automation modules shared by the Supra community</p>
+            </section>
             
-            <div class="marketplace-container">
+            <!-- Automation Section -->
+            <section id="automationSection" class="content-section">
+                
+                <div class="section-header">
+                    <h2 class="section-title">Create Automation Task</h2>
+                    <p class="section-subtitle">Connect wallet → Select module → Configure → Deploy</p>
+                </div>
+                
+                <!-- Visual Flow Builder -->
+                <div class="flow-builder">
+                    <div class="flow-stage" id="flowStage1" data-step="1">
+                        <div class="flow-node trigger-node">
+                            <div class="node-icon">🔌</div>
+                            <div class="node-title">Connect</div>
+                            <div class="node-status" id="nodeStatus1">Start here</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flow-connector"></div>
+                    
+                    <div class="flow-stage" id="flowStage2" data-step="2">
+                        <div class="flow-node select-node">
+                            <div class="node-icon">📦</div>
+                            <div class="node-title">Module</div>
+                            <div class="node-status" id="nodeStatus2">Pending</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flow-connector"></div>
+                    
+                    <div class="flow-stage" id="flowStage3" data-step="3">
+                        <div class="flow-node function-node">
+                            <div class="node-icon">⚙️</div>
+                            <div class="node-title">Function</div>
+                            <div class="node-status" id="nodeStatus3">Pending</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flow-connector"></div>
+                    
+                    <div class="flow-stage" id="flowStage4" data-step="4">
+                        <div class="flow-node deploy-node">
+                            <div class="node-icon">🚀</div>
+                            <div class="node-title">Configure & Deploy</div>
+                            <div class="node-status" id="nodeStatus4">Pending</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 1: Connect Wallet -->
+                <div class="wizard-step active" id="step-1">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <div class="step-number">1</div>
+                            <div class="step-info">
+                                <h3 class="step-title">Connect Wallet or Enter Address</h3>
+                                <p class="step-desc">Connect your Starkey wallet or manually enter an account address</p>
+                            </div>
+                        </div>
+                        <div class="step-content">
+                            <div class="connect-options">
+                                <button class="connect-btn" id="connectWallet">
+                                    <span class="btn-text">Connect Starkey Wallet</span>
+                                </button>
+                                <span class="or-divider">OR</span>
+                                <div class="manual-input-group">
+                                    <input type="text" 
+                                           id="manualAddress" 
+                                           class="wizard-input" 
+                                           placeholder="Enter account address (0x...)"
+                                           maxlength="66">
+                                    <button class="use-btn" id="useManualAddress">
+                                        <span class="btn-icon">🔍</span>
+                                        <span class="btn-text">Use Address</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="module-count-config">
+                                <label for="moduleCount">
+                                    <span class="label-text">Number of modules to fetch:</span>
+                                    <span class="hint-icon" title="Specify how many modules to fetch from your account. Default is 50, but you can increase it to see more modules.">?</span>
+                                </label>
+                                <input type="number" 
+                                       id="moduleCount" 
+                                       class="wizard-input compact" 
+                                       value="50"
+                                       min="1"
+                                       max="200">
+                                <small class="input-hint">Recommended: 40-50 modules. Max: 200</small>
+                            </div>
+                            
+                            <div class="wallet-status" id="walletStatus" style="display: none;">
+                                <div class="status-badge success">
+                                    <span class="status-icon">✅</span>
+                                    <span>Connected: <strong id="walletAddress"></strong></span>
+                                </div>
+                            </div>
+                            
+                            <div class="loading-state" id="autoScanStatus" style="display: none;">
+                                <div class="loading-spinner"></div>
+                                <span>Scanning for modules...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 2: Select Module -->
+                <div class="wizard-step" id="step-2">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <div class="step-number">2</div>
+                            <div class="step-info">
+                                <h3 class="step-title">Select Module</h3>
+                                <p class="step-desc">Choose a module to explore its entry functions</p>
+                            </div>
+                        </div>
+                        <div class="step-content">
+                            <div class="modules-grid" id="modulesList"></div>
+                            <div class="loading-state" id="abiLoading" style="display: none;">
+                                <div class="loading-spinner"></div>
+                                <span>Loading module functions...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 3: Select Function -->
+                <div class="wizard-step" id="step-3">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <div class="step-number">3</div>
+                            <div class="step-info">
+                                <h3 class="step-title">Select Entry Function</h3>
+                                <p class="step-desc">Pick the entry function to automate</p>
+                            </div>
+                        </div>
+                        <div class="step-content">
+                            <div class="functions-grid" id="functionsList"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Step 4: Configure & Deploy -->
+                <div class="wizard-step" id="step-4">
+                    <div class="step-card">
+                        <div class="step-header">
+                            <div class="step-number">4</div>
+                            <div class="step-info">
+                                <h3 class="step-title">Configure Parameters & Deploy</h3>
+                                <p class="step-desc">Set function arguments, automation settings, then choose deployment method</p>
+                            </div>
+                        </div>
+                        <div class="step-content">
+                            <div class="params-layout">
+                                <div class="params-section">
+                                    <h4 class="params-title">Function Parameters</h4>
+                                    <div id="functionParams" class="params-container"></div>
+                                </div>
+                                
+                                <!-- Duration Slider Section -->
+                                <div class="duration-slider-section">
+                                    <div class="duration-slider-title">
+                                        ⏱️ Automation Duration
+                                    </div>
+                                    <div class="slider-container">
+                                        <input type="range" id="durationSlider" class="duration-slider" 
+                                               min="1" max="30" value="7" step="1">
+                                        <div class="duration-display">
+                                            <span class="duration-value" id="durationValue">7 days</span>
+                                            <span class="duration-max">Max: 30 days</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Cost Estimates -->
+                                    <div class="cost-estimates">
+                                        <div class="cost-card">
+                                            <div class="cost-info">
+                                                <div class="cost-label">Estimated Total Cost</div>
+                                                <div class="cost-value" id="estimatedCost">144.00 SUPRA</div>
+                                            </div>
+                                        </div>
+                                        <div class="cost-card">
+                                            <div class="cost-info">
+                                                <div class="cost-label">Estimated Transactions</div>
+                                                <div class="cost-value" id="estimatedTxs">~2,016 txs</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Advanced Settings (Collapsible) -->
+                                <div class="advanced-settings">
+                                    <button class="settings-toggle" id="settingsToggle" type="button">
+                                        <span>⚙️ Advanced Settings</span>
+                                        <span class="settings-toggle-icon">▼</span>
+                                    </button>
+                                    <div class="settings-content" id="settingsContent">
+                                        <div class="params-section">
+                                            <div class="automation-params">
+                                                <div class="param-row">
+                                                    <label>
+                                                        Max Gas Amount
+                                                        <span class="hint-icon" title="Maximum amount of gas that can be consumed by this automation task.">?</span>
+                                                    </label>
+                                                    <input type="number" id="maxGasAmount" value="5000" class="param-input" min="1000" max="1000000">
+                                                </div>
+                                                <div class="param-row">
+                                                    <label>
+                                                        Gas Price Cap
+                                                        <span class="hint-icon" title="Maximum gas price you're willing to pay per unit of gas.">?</span>
+                                                    </label>
+                                                    <input type="number" id="gasPriceCap" value="200" class="param-input" min="1" max="10000">
+                                                </div>
+                                                <div class="param-row">
+                                                    <label>
+                                                        Expiry Time (seconds)
+                                                        <span class="hint-icon" title="Unix timestamp when this automation task expires. Auto-calculated from duration slider.">?</span>
+                                                    </label>
+                                                    <input type="number" id="expiryTimeAuto" readonly class="param-input readonly">
+                                                    <small>Auto-calculated from duration slider</small>
+                                                </div>
+                                                <div class="param-row">
+                                                    <label>
+                                                        Automation Fee Cap
+                                                        <span class="hint-icon" title="Maximum fee you'll pay for the automation service. Auto-calculated based on your max gas amount.">?</span>
+                                                    </label>
+                                                    <input type="text" id="automationFeeAuto" readonly class="param-input readonly">
+                                                    <small>Auto-calculated from network data</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Deployment Options -->
+                            <div class="deployment-section">
+                                <h4 class="deployment-title">
+                                    <span class="deployment-icon">🚀</span>
+                                    Choose Deployment Method
+                                </h4>
+                                
+                                <div class="deployment-summary-compact">
+                                    <div class="summary-badge">
+                                        <strong>Module:</strong> <span id="summaryModule">-</span>
+                                    </div>
+                                    <div class="summary-badge">
+                                        <strong>Function:</strong> <span id="summaryFunction">-</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="deploy-methods">
+                                    <div class="method-card">
+                                        <div class="method-icon">>_</div>
+                                        <h4>CLI Command</h4>
+                                        <p>Generate a ready-to-use terminal command</p>
+                                        <button class="deploy-btn secondary full-width" id="generateCommand">
+                                            <span class="btn-icon">📋</span>
+                                            <span class="btn-text">Generate CLI Command</span>
+                                        </button>
+                                    </div>
+                                    
+                                    <div class="method-card">
+                                        <div class="method-icon">⬆</div>
+                                        <h4>Direct Signing</h4>
+                                        <p>Sign and Register Directly with Starkey wallet</p>
+                                        <button class="deploy-btn primary full-width" id="signTransaction">
+                                            <span class="btn-icon">»</span>
+                                            <span class="btn-text">Register from Starkey</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="deploy-status" id="deployStatus" style="display: none;"></div>
+                                <div class="transaction-status" id="transactionStatus" style="display: none;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </section>
+            
+            <!-- Marketplace Section -->
+            <section id="marketplaceSection" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">AutoFi Marketplace</h2>
+                    <p class="section-subtitle">Discover and use automation modules shared by the Supra community</p>
+                </div>
+                
                 <div class="marketplace-header">
                     <div class="marketplace-stats">
                         <div class="stat-badge">
@@ -341,18 +540,19 @@
                         <input type="text" 
                                id="marketplaceSearch" 
                                class="search-input" 
-                               placeholder="Search modules...">
+                               placeholder="🔍 Search modules...">
                         <select id="categoryFilter" class="filter-select">
                             <option value="all">All Categories</option>
-                            <option value="DeFi">Payments</option>
-                             <option value="NFT">NFT</option>
-                             <option value="NFT">SocialFi</option>
-                             <option value="NFT">Trading</option>
+                            <option value="Payment">Payments</option>
+                            <option value="NFT">NFT</option>
+                            <option value="SocialFi">SocialFi</option>
+                            <option value="Trading">Trading</option>
                         </select>
                     </div>
-                </div>                
-                <div class="marketplace-grid" id="marketplaceGrid">
                 </div>
+                
+                <div class="marketplace-grid" id="marketplaceGrid"></div>
+                
                 <div class="marketplace-cta">
                     <div class="cta-content">
                         <h4>Want to share your automation module?</h4>
@@ -363,70 +563,57 @@
                         <span class="btn-text">Submit Your Module</span>
                     </a>
                 </div>
-            </div>
-        </div>
-        <div class="automated-tasks-section">
-            <h3 class="automated-tasks-title">📋 View Automated Tasks</h3>
-            <p class="automated-tasks-subtitle">Monitor and manage your existing automation tasks</p>
+            </section>
             
-            <div class="automated-tasks-container">
+            <!-- Tasks Section -->
+            <section id="tasksSection" class="content-section">
+                <div class="section-header">
+                    <h2 class="section-title">My Completed Automation Tasks</h2>
+                    <p class="section-subtitle">View your successfully executed automation tasks</p>
+                </div>
+                
                 <div class="tasks-header">
-                    <h4>Your Automated Tasks</h4>
                     <button class="refresh-btn" id="refreshTasks">
-                        <div class="btn-icon">🔄</div>
-                        <div class="btn-text">Refresh</div>
+                        <span class="btn-icon">🔄</span>
+                        <span class="btn-text">Refresh</span>
                     </button>
                 </div>
+                
                 <div class="loading-state" id="tasksLoading" style="display: none;">
                     <div class="loading-spinner"></div>
                     <span>Loading automated tasks...</span>
                 </div>
-                <div class="tasks-grid" id="automatedTasksList">
-                </div>
+                
+                <div class="tasks-grid" id="automatedTasksList"></div>
+                
                 <div class="no-tasks-state" id="noTasksState" style="display: none;">
                     <div class="empty-state">
                         <div class="empty-icon">📋</div>
                         <div class="empty-title">No Automated Tasks Found</div>
-                        <div class="empty-desc">You haven't created any automated tasks yet. Use the wizard above to create your first automation!</div>
+                        <div class="empty-desc">You haven't created any automated tasks yet. Use the wizard to create your first automation!</div>
+                        <button class="action-btn primary" onclick="navigateToSection('automation')">
+                            <span class="btn-icon">🚀</span>
+                            <span>Create First Task</span>
+                        </button>
                     </div>
                 </div>
-            </div>
-        </div>
+            </section>
+            
+        </main>
         
-        <div class="resources-section">
-            <h3 class="resources-title">Automation Dev Resources</h3>    
-            <div class="resources-grid">
-                <a href="https://docs.supra.com/network/move/getting-started/supra-cli-with-docker" target="_blank" class="resource-card">
-                    <div class="resource-icon">🛠️</div>
-                    <div class="resource-info">
-                        <div class="resource-name">Install Supra CLI</div>
-                        <div class="resource-desc">Get the Supra Docker CLI</div>
-                    </div>
-                </a>
-                <a href="https://docs.supra.com/automation" target="_blank" class="resource-card">
-                    <div class="resource-icon">📚</div>
-                    <div class="resource-info">
-                        <div class="resource-name">Automation Docs</div>
-                        <div class="resource-desc">Complete Supra Automation Documentation and Guides</div>
-                    </div>
-                </a>
-                <a href="https://docs.supra.com/network/move/network-information" target="_blank" class="resource-card">
-                    <div class="resource-icon">🌐</div>
-                    <div class="resource-info">
-                        <div class="resource-name">Network Details</div>
-                        <div class="resource-desc">RPC endpoints & configs</div>
-                    </div>
-                </a>
-                <a href="https://discord.gg/supralabs" target="_blank" class="resource-card">
-                    <div class="resource-icon">💬</div>
-                    <div class="resource-info">
-                        <div class="resource-name">Dev Support</div>
-                        <div class="resource-desc">Join our Discord</div>
-                    </div>
-                </a>
+        <!-- Right Panel (Optional - Price Ticker) -->
+        <!-- Uncomment to enable
+        <aside class="price-ticker">
+            <div class="ticker-header">
+                <span class="ticker-icon">📊</span>
+                <h3>Live Prices</h3>
             </div>
-        </div>
+            <div class="price-list" id="priceList"></div>
+        </aside>
+        -->
+        
     </div>
+    
     <div class="status-bar">
         <div class="status-dot"></div>
         <span>Updates every 5 seconds</span>
@@ -435,6 +622,7 @@
         <span>•</span>
         <a href="https://docs.supra.com" style="color: #DD1438; text-decoration: none;">Docs</a>
     </div>
+    
     <script src="assist/js/autofimarketplace.js"></script>
     <script src="assist/js/helper.js"></script>
 </body>

@@ -1,18 +1,92 @@
-// Supra AutoFi Marketplace - Community Module Sharing
-// Fetches modules from the main repository
-
-// GitHub Configuration - Using main dev tool repo
 const GITHUB_CONFIG = {
     owner: 'Supra-Labs',
     repo: 'Supra-Automation-assist',
     branch: 'main',
-    filePath: 'marketplace/modules.json'  // Keep marketplace files organized
+    filePath: 'marketplace/modules.json'
 };
 
 // Construct GitHub raw content URL
 const MODULES_JSON_URL = `https://raw.githubusercontent.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/${GITHUB_CONFIG.branch}/${GITHUB_CONFIG.filePath}`;
 
-// Fallback modules (used if GitHub fetch fails)
+// Crystara API Configuration
+const CRYSTARA_CONFIG = {
+    MAINNET_BASE_URL: 'https://api.crystara.trade/mainnet',
+    API_KEY: '342a7625ee42403391fc80bf36a96e1c396f52750bd846f8b1325b2eb1a442be',
+    getCurrentBaseURL: function() {
+        return this.MAINNET_BASE_URL;
+    }
+};
+
+// Crystara API - Fetch collections with search
+async function fetchCrystaraCollections(searchText = '') {
+    try {
+        const baseURL = CRYSTARA_CONFIG.getCurrentBaseURL();
+        let endpoint;
+        let isSearchEndpoint = false;
+        
+        if (searchText && searchText.length >= 2) {
+            endpoint = `/api/market/search?text=${encodeURIComponent(searchText)}`;
+            isSearchEndpoint = true;
+        } else {
+            endpoint = `/api/rankings/trending-collections?page=1&limit=50`;
+        }        
+        
+        console.log('Fetching Crystara collections:', baseURL + endpoint);
+        
+        const response = await fetch(`${baseURL}${endpoint}`, {
+            headers: {
+                'x-api-key': CRYSTARA_CONFIG.API_KEY,
+                'Content-Type': 'application/json'
+            }
+        });        
+        
+        if (response.status === 429) {
+            throw new Error('Rate limit exceeded');
+        }
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }    
+        
+        const data = await response.json();
+        console.log('Crystara API response:', data);
+        
+        let collections = [];
+        
+        // Handle different response structures based on endpoint
+        if (isSearchEndpoint) {
+            if (data && data.collections && Array.isArray(data.collections)) {
+                collections = data.collections;
+            } else if (data && Array.isArray(data)) {
+                collections = data;
+            }
+        } else {
+            // For trending collections: data.data or data
+            if (data.success && data.data) {
+                collections = Array.isArray(data.data) ? data.data : data.data.collections || [];
+            } else if (Array.isArray(data)) {
+                collections = data;
+            }
+        }
+        console.log('Parsed collections:', collections.length);
+        return collections.map(col => ({
+            id: col.id || col.collection_id || '',
+            name: col.name || col.collection || 'Unknown',
+            creator: col.creator || col.creator_address || '',
+            description: col.description || '',
+            uri: col.uri || '',
+            imageUrl: col.cachedImageUri?.image || col.imageUrl || col.image || '',
+            isVerified: col.isVerified || col.verified || false,
+            standard: col.standard || 'v1',
+            isLootbox: col.isLootbox || false,
+            isMinting: col.isMinting || false
+        }));
+    } catch (error) {
+        console.error('Crystara API error:', error);
+        return [];
+    }
+}
+
 const fallbackModules = [
     {
         name: "FALL BACK",
@@ -33,44 +107,31 @@ let currentSearchTerm = '';
 let currentCategory = 'all';
 let isLoading = true;
 
-// Initialize marketplace on page load
 async function initMarketplace() {
     console.log('Initializing Supra AutoFi Marketplace...');
-    
-    // Show loading state
     showLoadingState();
-    
-    // Fetch modules from GitHub
     await fetchModulesFromGitHub();
-    
-    // Set up event listeners
     const searchInput = document.getElementById('marketplaceSearch');
     const categoryFilter = document.getElementById('categoryFilter');
-    
     if (searchInput) {
         searchInput.addEventListener('input', handleSearch);
-    }
-    
+    }    
     if (categoryFilter) {
         categoryFilter.addEventListener('change', handleCategoryFilter);
     }
-    
-    // Initial render
     isLoading = false;
     filteredModules = [...marketplaceModules];
     updateMarketplaceStats();
-    renderMarketplace();
-    
+    renderMarketplace();    
     console.log('Marketplace initialized with', marketplaceModules.length, 'modules');
 }
 
 // Fetch modules from GitHub JSON file
 async function fetchModulesFromGitHub() {
     try {
-        console.log('Fetching modules from GitHub:', MODULES_JSON_URL);
-        
+        console.log('Fetching modules from GitHub:', MODULES_JSON_URL);        
         const response = await fetch(MODULES_JSON_URL, {
-            cache: 'no-cache',  // Always get fresh data
+            cache: 'no-cache', 
             headers: {
                 'Accept': 'application/json'
             }
@@ -252,39 +313,45 @@ function createMarketplaceItemHTML(module, index) {
     `;
 }
 
-// Use module - populate wizard with module data
+// Use module - populate wizard and auto-jump to Step 4
 function useModule(module) {
     console.log('Using module:', module.name);
-    
-    // Show notification
     showMarketplaceNotification(`Loading ${module.name}...`, 'info');
-    
-    // Set the manual address input
-    const manualAddressInput = document.getElementById('manualAddress');
-    if (manualAddressInput) {
-        manualAddressInput.value = module.address;
+    window.pendingMarketplaceModule = {
+        name: module.name,
+        module: module.module,
+        address: module.address
+    };
+    if (window.navigateToSection) {
+        window.navigateToSection('automation');
+        console.log('Navigated to automation section');
+    } else {
+        const createTaskNav = document.querySelector('[data-section="automation"]');
+        if (createTaskNav) {
+            createTaskNav.click();
+            console.log('Clicked Create Task nav item');
+        }
     }
     
-    // Trigger the "Use Address" button click
+    // THEN: Set the manual address and trigger flow
     setTimeout(() => {
-        const useAddressBtn = document.getElementById('useManualAddress');
-        if (useAddressBtn) {
-            useAddressBtn.click();
-            
-            // Scroll to wizard
-            setTimeout(() => {
-                const wizardSection = document.querySelector('.automation-section');
-                if (wizardSection) {
-                    wizardSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
+        const manualAddressInput = document.getElementById('manualAddress');
+        if (manualAddressInput) {
+            manualAddressInput.value = module.address;
+        }
+        setTimeout(() => {
+            const useAddressBtn = document.getElementById('useManualAddress');
+            if (useAddressBtn) {
+                useAddressBtn.click();
+                console.log('Triggered useManualAddress');
                 
                 showMarketplaceNotification(
-                    `${module.name} loaded! Select the "${module.module}" module to continue.`,
-                    'success'
+                    `${module.name} loading... Auto-selecting module and function.`,
+                    'info'
                 );
-            }, 1000);
-        }
-    }, 500);
+            }
+        }, 500);
+    }, 300);
 }
 
 // View module code - open GitHub repo
@@ -347,8 +414,6 @@ function showMarketplaceNotification(message, type = 'info') {
         }, 300);
     }, 4000);
 }
-
-// Export functions for use in other scripts if needed
 window.marketplaceAPI = {
     initMarketplace,
     useModule,
@@ -358,7 +423,7 @@ window.marketplaceAPI = {
     getFilteredModules: () => filteredModules
 };
 
-// Auto-initialize when DOM is ready
+window.fetchCrystaraCollections = fetchCrystaraCollections;
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initMarketplace);
 } else {
